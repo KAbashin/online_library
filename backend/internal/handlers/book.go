@@ -1,27 +1,54 @@
 package handlers
 
-import "strconv"
+import (
+	"database/sql"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"online_library/backend/internal/models"
+	"online_library/backend/internal/repository"
+)
 
-/*
-Пагинация книг в категории
-*/
-func (h *BookHandler) GetBooksByCategory(c echo.Context) error {
-	categoryID := c.Param("id")
-	page, _ := strconv.Atoi(c.QueryParam("page"))
-	if page < 1 {
-		page = 1
+type BookHandler struct {
+	Repo *repository.Queries
+	DB   *sql.DB
+}
+
+func NewBookHandler(db *sql.DB) *BookHandler {
+	return &BookHandler{
+		Repo: repository.New(db),
+		DB:   db,
 	}
-	limit := 20 // Книг на страницу
+}
 
-	books, total, err := h.service.GetBooksByCategory(categoryID, page, limit)
-	if err != nil {
-		return err
+func GetBookByID(c *gin.Context) {
+	c.JSON(200, gin.H{"message": "book details for " + c.Param("id")})
+}
+
+func SearchBooks(c *gin.Context) {
+	c.JSON(200, gin.H{"message": "search books", "query": c.Request.URL.Query()})
+}
+
+func (h *BookHandler) CreateBook(c *gin.Context) {
+	var req models.CreateBookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные: " + err.Error()})
+		return
 	}
 
-	return c.JSON(200, map[string]interface{}{
-		"books": books,
-		"total": total,
-		"page":  page,
-		"limit": limit,
+	book, err := h.Repo.CreateBook(c, repository.CreateBookParams{
+		Title:       req.Title,
+		Description: req.Description,
+		PublishYear: req.PublishYear,
+		Pages:       req.Pages,
+		Language:    req.Language,
+		Publisher:   req.Publisher,
+		Type:        req.Type,
+		CoverUrl:    req.CoverURL,
 	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании книги"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, book)
 }
