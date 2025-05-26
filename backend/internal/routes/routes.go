@@ -5,6 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"online_library/backend/internal/handlers"
 	"online_library/backend/internal/middleware"
+	"online_library/backend/internal/repository"
+	"online_library/backend/internal/service"
 )
 
 func SetupRoutes(r *gin.Engine, db *sql.DB) {
@@ -12,6 +14,13 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	r.Use(gin.Recovery())
 
 	bookHandler := handlers.NewBookHandler(db)
+
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
+	userHandler := handlers.NewUserHandler(userService)
+
+	authService := service.NewAuthService(userRepo, userService)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	api := r.Group("/api")
 	{
@@ -33,8 +42,15 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		api.GET("/books/:id/comments", handlers.GetCommentsForBook)              // список комментариев.
 		api.POST("/comments", middleware.AuthRequired(), handlers.CreateComment) // Middleware на auth нужно отдельно  // добавить (только для авторизованных).
 
+		// Пользователи
+		api.GET("/users", middleware.AdminOnly(), userHandler.GetUsers)
+		api.POST("/users", middleware.AdminOnly(), userHandler.СreateUser)
+		api.PUT("/users/:id", middleware.AuthRequired(), userHandler.UpdateUser)
+		api.DELETE("/users/:id", middleware.AdminOnly(), userHandler.SoftDeleteUser)
+		api.DELETE("/users/:id/hard", middleware.SuperAdminOnly(), userHandler.HardDeleteUser)
+
 		// Аутентификация
-		api.POST("/auth/login", handlers.Login)       // вход (JWT-токен в ответе).
-		api.POST("/auth/register", handlers.Register) // регистрация.
+		api.POST("/auth/login", authHandler.Login)       // вход (JWT-токен в ответе).
+		api.POST("/auth/register", authHandler.Register) // регистрация.
 	}
 }

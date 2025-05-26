@@ -11,12 +11,15 @@ backend/
 ├── cmd/               # Точка входа (main.go)
 ├── internal/          # Основная логика
 │   ├── handlers/      # HTTP-обработчики (REST)
+│   ├──middleware/
 │   ├── models/        # Сущности БД (структуры Go)
 │   ├── repository/    # Работа с БД (PostgreSQL)
+│   ├── routes
 │   ├── service/       # Бизнес-логика
 │   └── pkg/           # Вспомогательные пакеты (auth, utils)
+├── logs
 ├── migrations/        # SQL-миграции (например, Goose или Liquibase)
-├── pkg/               # Общие пакеты (конфиги, логгер)
+├─  test/
 └── docs/              # Swagger/OpenAPI-документация
 
 frontend/

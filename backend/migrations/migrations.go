@@ -90,8 +90,12 @@ func RunMigrations(db *sql.DB) error {
 		id SERIAL PRIMARY KEY,
 		email VARCHAR(255) UNIQUE NOT NULL,
 		password_hash VARCHAR(255) NOT NULL,  -- bcrypt
-		name VARCHAR(100),
-		role VARCHAR(50) DEFAULT 'user'       -- user/admin
+    	name VARCHAR(255) NOT NULL,
+    	role VARCHAR(50) NOT NULL DEFAULT 'new-user',
+		bio TEXT,
+		registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    	token_version INT NOT NULL DEFAULT 1,
+    	is_active BOOLEAN NOT NULL DEFAULT TRUE
 	);`,
 	}
 	for _, stmt := range statements {
