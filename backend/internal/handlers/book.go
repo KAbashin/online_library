@@ -1,5 +1,6 @@
 package handlers
 
+/*
 import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
@@ -7,6 +8,7 @@ import (
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/repository"
 )
+
 
 type BookHandler struct {
 	Repo *repository.Queries
@@ -52,3 +54,4 @@ func (h *BookHandler) CreateBook(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, book)
 }
+*/

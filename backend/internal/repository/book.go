@@ -1,5 +1,6 @@
 package repository
 
+/*
 import (
 	"context"
 	"database/sql"
@@ -173,3 +174,4 @@ func (q *Queries) SearchBooks(ctx context.Context, arg SearchBooksParams) ([]Boo
 	}
 	return items, nil
 }
+*/

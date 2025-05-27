@@ -12,7 +12,7 @@ type UserService interface {
 	GetAllUsers(ctx context.Context) ([]models.User, error)
 	CreateUser(ctx context.Context, input models.UserInput) (*models.User, error)
 	UpdateUser(ctx context.Context, id int, input models.UserInput) (*models.User, error)
-	UpdateUserByAdmin(ctx context.Context, id int, input models.AdminUserUpdateInput)
+	UpdateUserByAdmin(ctx context.Context, id int, input models.AdminUserUpdateInput) (*models.User, error)
 	CheckEmailExists(email string) (bool, error)
 	SoftDeleteUser(ctx context.Context, id int) error
 	HardDeleteUser(ctx context.Context, id int) error

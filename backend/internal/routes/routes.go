@@ -13,7 +13,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	bookHandler := handlers.NewBookHandler(db)
+	//bookHandler := handlers.NewBookHandler(db)
 
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)
@@ -22,17 +22,29 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	authService := service.NewAuthService(userRepo, userService)
 	authHandler := handlers.NewAuthHandler(authService)
 
+	categoryRepo := repository.NewCategoryRepository(db)
+	categoryService := service.NewCategoryService(categoryRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
+
 	api := r.Group("/api")
 	{
 		// Категории
-		api.GET("/categories", handlers.GetRootCategories)                // список корневых категорий.
-		api.GET("/categories/:id/children", handlers.GetCategoryChildren) //  подкатегории.
-		api.GET("/categories/:id/books", handlers.GetBooksByCategory)     // книги в категории (с пагинацией).
+		api.GET("/categories", categoryHandler.GetAllCategories) // всё дерево категорий
+		api.GET("/categories/root", categoryHandler.GetRootCategories)
+		api.GET("/categories/:id", categoryHandler.GetCategoryByID)
+		api.GET("/categories/:id/children", categoryHandler.GetCategoryChildren)
+		api.GET("/categories/:id/books", categoryHandler.GetBooksInCategory)
+
+		api.POST("/categories", middleware.AdminOnly(), categoryHandler.CreateCategory)
+		api.POST("/categories/:id", middleware.AdminOnly(), categoryHandler.UpdateCategory)
+		api.DELETE("/categories/:id", middleware.AdminOnly(), categoryHandler.DeleteCategory)
 
 		// Книги
-		api.GET("/books/:id", handlers.GetBookByID)                        // детали книги.
-		api.GET("/books", handlers.SearchBooks)                            // поиск/фильтрация.
-		api.POST("/books", middleware.AdminOnly(), bookHandler.CreateBook) // Middleware на админа нужно отдельно // добавление (только для админов).
+		/*
+			api.GET("/books/:id", handlers.GetBookByID)                        // детали книги.
+			api.GET("/books", handlers.SearchBooks)                            // поиск/фильтрация.
+			api.POST("/books", middleware.AdminOnly(), bookHandler.CreateBook) // Middleware на админа нужно отдельно // добавление (только для админов).
+		*/
 
 		// Авторы
 		api.GET("/authors/:id", handlers.GetAuthorByID) //  страница автора + его книги.

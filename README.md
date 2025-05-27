@@ -53,3 +53,8 @@ POST /api/comments – добавить (только для авторизов�
 POST /api/auth/login – вход (JWT-токен в ответе).
 POST /api/auth/register – регистрация.
 
+
+Запуск миграций:
+```bash
+migrate -path ./migrations -database "postgres://librarian:pass@localhost:5432/mydb?sslmode=disable" up
+```

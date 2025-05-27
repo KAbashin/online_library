@@ -1,7 +1,8 @@
-package cmd
+package main
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -13,9 +14,21 @@ import (
 )
 
 func main() {
-	db, errDb := sql.Open("postgres", "postgres://user:pass@localhost:5432/mydb?sslmode=disable")
+	fmt.Println("Запустили проект")
+	db, errDb := sql.Open("postgres", "postgres://librarian:pass@localhost:5432/mydb?sslmode=disable")
 	if errDb != nil {
-		log.Fatal("Не удалось подключиться к БД:", errDb)
+		log.Fatalf("Не удалось подключиться к БД:  %v", errDb)
+	}
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
+
+	// возможно это надо выносить в отдельный скрипт для периодического опроса
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Не удалось подключиться к БД (ping не прошёл): %v", err)
 	}
 
 	r := gin.Default()
