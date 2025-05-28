@@ -1,0 +1,168 @@
+package repository
+
+import (
+	"database/sql"
+	"online_library/backend/internal/models"
+	"online_library/backend/internal/pkg/translit"
+)
+
+type AuthorRepository interface {
+	CreateAuthor(author *models.Author) error
+	UpdateAuthor(author *models.Author) error
+	DeleteAuthor(id int) error
+	GetAuthorByID(id int) (*models.Author, error)
+	SearchAuthorByName(query string, limit, offset int) ([]*models.Author, error)
+	GetAllAuthors(offset, limit int) ([]models.Author, error)
+	CountAuthors(query string) (int, error)
+	AuthorExists(nameRu, nameEn string, excludeID int) (bool, error)
+}
+
+type authorRepository struct {
+	db *sql.DB
+}
+
+func NewAuthorRepository(db *sql.DB) AuthorRepository {
+	return &authorRepository{db: db}
+}
+
+func (r *authorRepository) GetAuthorByID(id int) (*models.Author, error) {
+	var a models.Author
+	err := r.db.QueryRow(`SELECT id, name_ru, name_en, bio, photo_url FROM authors WHERE id = $1`, id).
+		Scan(&a.ID, &a.NameRU, &a.NameEN, &a.Bio, &a.PhotoURL)
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *authorRepository) GetAllAuthors(offset, limit int) ([]models.Author, error) {
+	rows, err := r.db.Query(`
+		SELECT id, name_ru, name_en, bio, photo_url
+		FROM authors
+		ORDER BY name_ru ASC
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
+
+	var authors []models.Author
+	for rows.Next() {
+		var a models.Author
+		err := rows.Scan(&a.ID, &a.NameRU, &a.NameEN, &a.Bio, &a.PhotoURL)
+		if err != nil {
+			return nil, err
+		}
+		authors = append(authors, a)
+	}
+	return authors, nil
+}
+
+func (r *authorRepository) AuthorExists(nameRu, nameEn string, excludeID int) (bool, error) {
+	var id int
+	err := r.db.QueryRow(`
+		SELECT id FROM authors
+		WHERE (name_ru = $1 OR name_en = $2)
+		  AND id != $3
+		LIMIT 1
+	`, nameRu, nameEn, excludeID).Scan(&id)
+
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *authorRepository) CreateAuthor(author *models.Author) error {
+	if author.NameEN == "" {
+		author.NameEN = translit.ToLatin(author.NameRU)
+	}
+
+	query := `
+		INSERT INTO authors (name_ru, name_en, bio, photo_url)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`
+
+	err := r.db.QueryRow(query,
+		author.NameRU,
+		author.NameEN,
+		author.Bio,
+		author.PhotoURL,
+	).Scan(&author.ID)
+
+	return err
+}
+
+func (r *authorRepository) UpdateAuthor(author *models.Author) error {
+	query := `
+		UPDATE authors
+		SET name_ru = $1, name_en = $2, bio = $3, photo_url = $4
+		WHERE id = $5
+	`
+	_, err := r.db.Exec(query,
+		author.NameRU,
+		author.NameEN,
+		author.Bio,
+		author.PhotoURL,
+		author.ID,
+	)
+	return err
+}
+
+func (r *authorRepository) DeleteAuthor(id int) error {
+	_, err := r.db.Exec(`DELETE FROM authors WHERE id = $1`, id)
+	return err
+}
+
+func (r *authorRepository) SearchAuthorByName(query string, limit, offset int) ([]*models.Author, error) {
+	rows, err := r.db.Query(`
+		SELECT id, name_ru, name_en, bio, photo_url
+		FROM authors
+		WHERE name_ru ILIKE '%' || $1 || '%' OR name_en ILIKE '%' || $1 || '%'
+		ORDER BY name_ru ASC
+		LIMIT $2 OFFSET $3
+	`, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
+
+	var authors []*models.Author
+	for rows.Next() {
+		var a models.Author
+		err := rows.Scan(&a.ID, &a.NameRU, &a.NameEN, &a.Bio, &a.PhotoURL)
+		if err != nil {
+			return nil, err
+		}
+		authors = append(authors, &a)
+	}
+	return authors, nil
+}
+
+func (r *authorRepository) CountAuthors(query string) (int, error) {
+	var count int
+	err := r.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM authors
+		WHERE name_ru ILIKE '%' || $1 || '%' OR name_en ILIKE '%' || $1 || '%'
+	`, query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

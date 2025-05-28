@@ -1,177 +1,73 @@
 package repository
 
-/*
 import (
-	"context"
 	"database/sql"
+	"fmt"
+	"online_library/backend/internal/models"
+	"strings"
 )
 
-const createBook = `-- name: CreateBook :one
-INSERT INTO books (title, description, publish_year, pages, language, publisher, type, cover_url)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING id, title, description, publish_year, pages, language, publisher, type, rating, cover_url, created_at
-`
-
-type CreateBookParams struct {
-	Title       string         `json:"title"`
-	Description sql.NullString `json:"description"`
-	PublishYear sql.NullInt32  `json:"publish_year"`
-	Pages       sql.NullInt32  `json:"pages"`
-	Language    sql.NullString `json:"language"`
-	Publisher   sql.NullString `json:"publisher"`
-	Type        sql.NullString `json:"type"`
-	CoverUrl    sql.NullString `json:"cover_url"`
+type BookRepository interface {
+	GetBooksByTags(tagIDs []int, limit, offset int, sort string) ([]models.Book, error)
 }
 
-func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, error) {
-	row := q.db.QueryRowContext(ctx, createBook,
-		arg.Title,
-		arg.Description,
-		arg.PublishYear,
-		arg.Pages,
-		arg.Language,
-		arg.Publisher,
-		arg.Type,
-		arg.CoverUrl,
-	)
-	var i Book
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Description,
-		&i.PublishYear,
-		&i.Pages,
-		&i.Language,
-		&i.Publisher,
-		&i.Type,
-		&i.Rating,
-		&i.CoverUrl,
-		&i.CreatedAt,
-	)
-	return i, err
+type bookRepo struct {
+	db *sql.DB
 }
 
-const deleteBook = `-- name: DeleteBook :exec
-DELETE FROM books WHERE id = $1
-`
-
-func (q *Queries) DeleteBook(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteBook, id)
-	return err
+func NewBookRepository(db *sql.DB) BookRepository {
+	return &bookRepo{db: db}
 }
 
-const getBookByID = `-- name: GetBookByID :one
-SELECT id, title, description, publish_year, pages, language, publisher, type, rating, cover_url, created_at FROM books WHERE id = $1
-`
+func (r *BookRepository) GetBooksByTags(tagIDs []int, limit, offset int, sort string) ([]models.Book, error) {
+	// --- сортировка ---
+	var orderBy string
+	switch sort {
+	case "title_desc":
+		orderBy = "ORDER BY b.title DESC"
+	default: // "title_asc"
+		orderBy = "ORDER BY b.title ASC"
+	}
 
-func (q *Queries) GetBookByID(ctx context.Context, id int32) (Book, error) {
-	row := q.db.QueryRowContext(ctx, getBookByID, id)
-	var i Book
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Description,
-		&i.PublishYear,
-		&i.Pages,
-		&i.Language,
-		&i.Publisher,
-		&i.Type,
-		&i.Rating,
-		&i.CoverUrl,
-		&i.CreatedAt,
-	)
-	return i, err
-}
+	// --- подготовка SQL ---
+	placeholders := make([]string, len(tagIDs))
+	args := make([]interface{}, 0, len(tagIDs)+3)
 
-const listBooks = `-- name: ListBooks :many
-SELECT id, title, description, publish_year, pages, language, publisher, type, rating, cover_url, created_at FROM books ORDER BY created_at DESC LIMIT $1 OFFSET $2
-`
+	for i, id := range tagIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args = append(args, id)
+	}
+	tagCountIdx := len(args) + 1
+	limitIdx := tagCountIdx + 1
+	offsetIdx := limitIdx + 1
 
-type ListBooksParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
+	query := fmt.Sprintf(`
+		SELECT b.*
+		FROM books b
+		JOIN book_tags bt ON b.id = bt.book_id
+		WHERE bt.tag_id IN (%s)
+		GROUP BY b.id
+		HAVING COUNT(DISTINCT bt.tag_id) = $%d
+		%s
+		LIMIT $%d OFFSET $%d
+	`, strings.Join(placeholders, ","), tagCountIdx, orderBy, limitIdx, offsetIdx)
 
-func (q *Queries) ListBooks(ctx context.Context, arg ListBooksParams) ([]Book, error) {
-	rows, err := q.db.QueryContext(ctx, listBooks, arg.Limit, arg.Offset)
+	args = append(args, len(tagIDs), limit, offset)
+
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Book
+
+	var books []models.Book
 	for rows.Next() {
-		var i Book
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Description,
-			&i.PublishYear,
-			&i.Pages,
-			&i.Language,
-			&i.Publisher,
-			&i.Type,
-			&i.Rating,
-			&i.CoverUrl,
-			&i.CreatedAt,
-		); err != nil {
+		var b models.Book
+		// заполнение полей книги
+		if err := rows.Scan(&b.ID, &b.Title /* и т.д. */); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		books = append(books, b)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+	return books, nil
 }
-
-const searchBooks = `-- name: SearchBooks :many
-SELECT id, title, description, publish_year, pages, language, publisher, type, rating, cover_url, created_at FROM books
-WHERE title ILIKE '%' || $1 || '%'
-ORDER BY created_at DESC
-    LIMIT $2 OFFSET $3
-`
-
-type SearchBooksParams struct {
-	Column1 sql.NullString `json:"column_1"`
-	Limit   int32          `json:"limit"`
-	Offset  int32          `json:"offset"`
-}
-
-func (q *Queries) SearchBooks(ctx context.Context, arg SearchBooksParams) ([]Book, error) {
-	rows, err := q.db.QueryContext(ctx, searchBooks, arg.Column1, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Book
-	for rows.Next() {
-		var i Book
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Description,
-			&i.PublishYear,
-			&i.Pages,
-			&i.Language,
-			&i.Publisher,
-			&i.Type,
-			&i.Rating,
-			&i.CoverUrl,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-*/

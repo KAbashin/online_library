@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS categories (
 -- Авторы
 CREATE TABLE IF NOT EXISTS authors (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    bio TEXT,
-    photo_url VARCHAR(512)
+    name_ru VARCHAR(255) NOT NULL,
+    name_en VARCHAR(255) NOT NULL,
+    UNIQUE(name_ru, name_en)
     );
 
 -- Книги
@@ -56,13 +56,15 @@ CREATE TABLE IF NOT EXISTS book_images (
 -- Хештеги
 CREATE TABLE IF NOT EXISTS tags (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE
+    name VARCHAR(100) NOT NULL UNIQUE
+    color VARCHAR(7); -- hex-код, напр. "#FF8800"
     );
 
 -- Связь книг и тегов
 CREATE TABLE IF NOT EXISTS book_tags (
     book_id INT REFERENCES books(id) ON DELETE CASCADE,
     tag_id INT REFERENCES tags(id) ON DELETE CASCADE,
+    weight INT DEFAULT 1; -- 1 = основной, 0 = второстепенный
     PRIMARY KEY (book_id, tag_id)
     );
 

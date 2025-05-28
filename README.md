@@ -58,3 +58,9 @@ POST /api/auth/register – регистрация.
 ```bash
 migrate -path ./migrations -database "postgres://librarian:pass@localhost:5432/mydb?sslmode=disable" up
 ```
+
+TODO : 
+Author 
+Tag
+book
+comment

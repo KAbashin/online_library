@@ -1,57 +1,45 @@
 package handlers
 
-/*
 import (
-	"database/sql"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"online_library/backend/internal/models"
-	"online_library/backend/internal/repository"
+	"strconv"
+	"strings"
 )
 
-
-type BookHandler struct {
-	Repo *repository.Queries
-	DB   *sql.DB
-}
-
-func NewBookHandler(db *sql.DB) *BookHandler {
-	return &BookHandler{
-		Repo: repository.New(db),
-		DB:   db,
-	}
-}
-
-func GetBookByID(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "book details for " + c.Param("id")})
-}
-
-func SearchBooks(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "search books", "query": c.Request.URL.Query()})
-}
-
-func (h *BookHandler) CreateBook(c *gin.Context) {
-	var req models.CreateBookRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные: " + err.Error()})
-		return
+func (h *BookHandler) SearchBooks(c *gin.Context) {
+	// --- tags ---
+	var tagIDs []int
+	if tagsParam := c.Query("tags"); tagsParam != "" {
+		for _, s := range strings.Split(tagsParam, ",") {
+			if id, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
+				tagIDs = append(tagIDs, id)
+			}
+		}
 	}
 
-	book, err := h.Repo.CreateBook(c, repository.CreateBookParams{
-		Title:       req.Title,
-		Description: req.Description,
-		PublishYear: req.PublishYear,
-		Pages:       req.Pages,
-		Language:    req.Language,
-		Publisher:   req.Publisher,
-		Type:        req.Type,
-		CoverUrl:    req.CoverURL,
-	})
+	// --- pagination ---
+	limit := 20 // default
+	offset := 0
+	if l := c.Query("limit"); l != "" {
+		if val, err := strconv.Atoi(l); err == nil {
+			limit = val
+		}
+	}
+	if o := c.Query("offset"); o != "" {
+		if val, err := strconv.Atoi(o); err == nil {
+			offset = val
+		}
+	}
+
+	// --- sort ---
+	sort := c.DefaultQuery("sort", "title_asc")
+
+	// --- search ---
+	books, err := h.bookService.SearchBooks(tagIDs, limit, offset, sort)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании книги"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "search failed"})
 		return
 	}
-
-	c.JSON(http.StatusCreated, book)
+	c.JSON(http.StatusOK, books)
 }
-*/

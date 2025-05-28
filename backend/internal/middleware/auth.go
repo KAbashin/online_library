@@ -24,7 +24,6 @@ func AuthRequired() gin.HandlerFunc {
 			return
 		}
 
-		// Передаем ID и роль в context
 		c.Set("userID", claims.UserID)
 		c.Set("role", claims.Role)
 

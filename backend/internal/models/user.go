@@ -25,5 +25,5 @@ type AdminUserUpdateInput struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
 	Bio   string `json:"bio"`
-	Role  string `json:"role"` // user, admin, superadmin
+	Role  string `json:"role"` // new-user, user, admin, superadmin
 }
