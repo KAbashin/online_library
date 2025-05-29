@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS books (
         CHECK (type IN ('book', 'journal', 'article', 'other')),
     rating INT DEFAULT 0,
     cover_url VARCHAR(512),
+    status VARCHAR(20) NOT NULL DEFAULT 'quarantine'
+    created_by INT REFERENCES users(id);
     created_at TIMESTAMP DEFAULT NOW()
     );
 
@@ -88,4 +90,24 @@ CREATE TABLE IF NOT EXISTS comments (
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
+    );
+
+-- Файлы книги
+CREATE TABLE IF NOT EXISTS book_files (
+    id SERIAL PRIMARY KEY,
+    book_id INT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+    format VARCHAR(50) NOT NULL,
+    url TEXT NOT NULL,
+    file_size BIGINT,
+    hash VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(book_id, format)
+    );
+
+-- Избранные книги пользователей
+CREATE TABLE IF NOT EXISTS book_favorites (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    book_id INT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, book_id)
     );

@@ -13,5 +13,7 @@ type Book struct {
 	Type        *string   `json:"type,omitempty"`
 	Rating      int       `json:"rating"`
 	CoverURL    *string   `json:"cover_url,omitempty"`
+	Status      string    `json:"status"` // "visible", "archived", "quarantine", "adult"
+	CreatedBy   int       `json:"created_by"`
 	CreatedAt   time.Time `json:"created_at"`
 }

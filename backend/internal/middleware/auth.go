@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/pkg/auth"
@@ -33,7 +34,8 @@ func AuthRequired() gin.HandlerFunc {
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role, ok := c.Get("role")
+		roleVal, ok := c.Get("role")
+		role, _ := roleVal.(string)
 		if !ok || (role != models.RoleAdmin && role != models.RoleSuperAdmin) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 			return
@@ -47,6 +49,21 @@ func SuperAdminOnly() gin.HandlerFunc {
 		role, exists := c.Get("role")
 		if !exists || role != models.RoleSuperAdmin {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "superadmin access required"})
+			return
+		}
+		c.Next()
+	}
+}
+
+func OwnerOrAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDFromToken, ok := c.Get("userID")
+		roleVal, _ := c.Get("role")
+		role, _ := roleVal.(string)
+
+		paramID := c.Param("userID") // string
+		if !ok || (fmt.Sprintf("%v", userIDFromToken) != paramID && !IsAdmin(role)) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied"})
 			return
 		}
 		c.Next()

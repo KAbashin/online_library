@@ -30,6 +30,14 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	tagService := service.NewTagService(tagRepo)
 	tagHandler := handlers.NewTagHandler(tagService)
 
+	authorRepo := repository.NewAuthorRepository(db)
+	authorService := service.NewAuthorService(authorRepo)
+	authorHandler := handlers.NewAuthorHandler(authorService)
+
+	bookRepo := repository.NewBookRepository(db)
+	bookService := service.NewBookService(bookRepo)
+	bookHandler := handlers.NewBookHandler(bookService)
+
 	// Категории
 	apiCategories := r.Group("/api/categories")
 	{
@@ -42,28 +50,50 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		apiCategories.POST("", middleware.AdminOnly(), categoryHandler.CreateCategory)
 		apiCategories.POST("/:id", middleware.AdminOnly(), categoryHandler.UpdateCategory)
 		apiCategories.DELETE("/:id", middleware.AdminOnly(), categoryHandler.DeleteCategory)
-
-		authorRepo := repository.NewAuthorRepository(db)
-		authorService := service.NewAuthorService(authorRepo)
-		authorHandler := handlers.NewAuthorHandler(authorService)
-
 	}
 
 	// Книги
-	/*
-			api.GET("/books/:id", handlers.GetBookByID)                        // детали книги.
-			api.GET("/books", handlers.SearchBooks)                            // поиск/фильтрация.
-			api.POST("/books", middleware.AdminOnly(), bookHandler.CreateBook) // Middleware на админа нужно отдельно // добавление (только для админов).
-		    api.GET("/books/:id/comments", handlers.GetCommentsForBook)              // список комментариев.
-	*/
+	// TODO проработать права доступа !!!!
+	apiBooks := r.Group("/api/books")
+	{
+		// Публичные
+		apiBooks.GET("", middleware.AuthRequired(), bookHandler.SearchBooks)
+		apiBooks.GET("/:id", middleware.AuthRequired(), bookHandler.GetBookByID)
+		apiBooks.GET("/author/:author_id", middleware.AuthRequired(), bookHandler.GetBooksByAuthor)
+		apiBooks.GET("/tag/:tag_id", middleware.AuthRequired(), bookHandler.GetBooksByTag)
+		apiBooks.GET("/duplicates/:title", middleware.AuthRequired(), bookHandler.GetDuplicateBooks)
+		apiBooks.GET("/favorites", middleware.AuthRequired(), bookHandler.GetUserFavoriteBooks)
+		apiBooks.GET("/mine", middleware.AuthRequired(), bookHandler.GetUserBooks)
 
+		// Избранное
+		apiBooks.POST("/:book_id/favorite", middleware.AuthRequired(), bookHandler.AddBookToFavorites)
+		apiBooks.DELETE("/:book_id/favorite", middleware.AuthRequired(), bookHandler.RemoveBookFromFavorites)
+
+		// CRUD
+		apiBooks.POST("", middleware.AuthRequired(), bookHandler.CreateBook)
+		apiBooks.POST("/:id", middleware.AuthRequired(), bookHandler.UpdateBook)
+		apiBooks.DELETE("/:id", middleware.AuthRequired(), bookHandler.DeleteBook)
+
+		// Статус
+		apiBooks.POST("/:book_id/status", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.UpdateBookStatus)
+
+		// Авторы
+		apiBooks.POST("/:book_id/authors", middleware.AuthRequired(), bookHandler.SetBookAuthors)
+		apiBooks.POST("/:book_id/authors/:author_id", middleware.AuthRequired(), bookHandler.AddBookAuthor)
+		apiBooks.DELETE("/:book_id/authors/:author_id", middleware.AuthRequired(), bookHandler.RemoveBookAuthor)
+
+		// Теги
+		apiBooks.POST("/:book_id/tags", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.SetBookTags)
+		apiBooks.POST("/:book_id/tags/:tag_id", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.AddBookTag)
+		apiBooks.DELETE("/:book_id/tags/:tag_id", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.RemoveBookTag)
+	}
 	// Авторы
 	apiAuthors := r.Group("/api/authors")
 	{
 		apiAuthors.GET("", authorHandler.ListAuthors)
 		apiAuthors.GET("/:id", authorHandler.GetAuthorByID)
 		apiAuthors.POST("", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.CreateAuthor)
-		apiAuthors.PUT("/:id", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.UpdateAuthor)
+		apiAuthors.POST("/:id", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.UpdateAuthor)
 		apiAuthors.DELETE("/:id", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.DeleteAuthor)
 	}
 
