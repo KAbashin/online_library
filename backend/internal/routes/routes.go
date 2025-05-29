@@ -41,15 +41,15 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	// Категории
 	apiCategories := r.Group("/api/categories")
 	{
-		apiCategories.GET("", categoryHandler.GetAllCategories) // всё дерево категорий
-		apiCategories.GET("/root", categoryHandler.GetRootCategories)
-		apiCategories.GET("/:id", categoryHandler.GetCategoryByID)
-		apiCategories.GET("/:id/children", categoryHandler.GetCategoryChildren)
-		apiCategories.GET("/:id/books", categoryHandler.GetBooksInCategory)
+		apiCategories.GET("", middleware.AuthRequired(), categoryHandler.GetAllCategories) // всё дерево категорий
+		apiCategories.GET("/root", middleware.AuthRequired(), categoryHandler.GetRootCategories)
+		apiCategories.GET("/:id", middleware.AuthRequired(), categoryHandler.GetCategoryByID)
+		apiCategories.GET("/:id/children", middleware.AuthRequired(), categoryHandler.GetCategoryChildren)
+		apiCategories.GET("/:id/books", middleware.AuthRequired(), categoryHandler.GetBooksInCategory)
 
-		apiCategories.POST("", middleware.AdminOnly(), categoryHandler.CreateCategory)
-		apiCategories.POST("/:id", middleware.AdminOnly(), categoryHandler.UpdateCategory)
-		apiCategories.DELETE("/:id", middleware.AdminOnly(), categoryHandler.DeleteCategory)
+		apiCategories.POST("", middleware.AuthRequired(), middleware.AdminOnly(), categoryHandler.CreateCategory)
+		apiCategories.POST("/:id", middleware.AuthRequired(), middleware.AdminOnly(), categoryHandler.UpdateCategory)
+		apiCategories.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), categoryHandler.DeleteCategory)
 	}
 
 	// Книги
@@ -62,39 +62,39 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		apiBooks.GET("/author/:author_id", middleware.AuthRequired(), bookHandler.GetBooksByAuthor)
 		apiBooks.GET("/tag/:tag_id", middleware.AuthRequired(), bookHandler.GetBooksByTag)
 		apiBooks.GET("/duplicates/:title", middleware.AuthRequired(), bookHandler.GetDuplicateBooks)
-		apiBooks.GET("/favorites", middleware.AuthRequired(), bookHandler.GetUserFavoriteBooks)
 		apiBooks.GET("/mine", middleware.AuthRequired(), bookHandler.GetUserBooks)
 
 		// Избранное
-		apiBooks.POST("/:book_id/favorite", middleware.AuthRequired(), bookHandler.AddBookToFavorites)
-		apiBooks.DELETE("/:book_id/favorite", middleware.AuthRequired(), bookHandler.RemoveBookFromFavorites)
+		apiBooks.GET("/favorites", middleware.AuthRequired(), bookHandler.GetUserFavoriteBooks)
+		apiBooks.POST("/:book_id/favorite/add", middleware.AuthRequired(), bookHandler.AddBookToFavorites)
+		apiBooks.POST("/:book_id/favorite/remove", middleware.AuthRequired(), bookHandler.RemoveBookFromFavorites)
 
 		// CRUD
 		apiBooks.POST("", middleware.AuthRequired(), bookHandler.CreateBook)
-		apiBooks.POST("/:id", middleware.AuthRequired(), bookHandler.UpdateBook)
-		apiBooks.DELETE("/:id", middleware.AuthRequired(), bookHandler.DeleteBook)
+		apiBooks.POST("/:id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.UpdateBook)
+		apiBooks.POST("/:id/delete", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.DeleteBook)
 
 		// Статус
 		apiBooks.POST("/:book_id/status", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.UpdateBookStatus)
 
 		// Авторы
-		apiBooks.POST("/:book_id/authors", middleware.AuthRequired(), bookHandler.SetBookAuthors)
-		apiBooks.POST("/:book_id/authors/:author_id", middleware.AuthRequired(), bookHandler.AddBookAuthor)
-		apiBooks.DELETE("/:book_id/authors/:author_id", middleware.AuthRequired(), bookHandler.RemoveBookAuthor)
+		apiBooks.POST("/:book_id/authors", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.SetBookAuthors)
+		apiBooks.POST("/:book_id/authors/:author_id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.AddBookAuthor)
+		apiBooks.POST("/:book_id/authors/:author_id/remove", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.RemoveBookAuthor)
 
 		// Теги
-		apiBooks.POST("/:book_id/tags", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.SetBookTags)
-		apiBooks.POST("/:book_id/tags/:tag_id", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.AddBookTag)
-		apiBooks.DELETE("/:book_id/tags/:tag_id", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.RemoveBookTag)
+		apiBooks.POST("/:book_id/tags", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.SetBookTags)
+		apiBooks.POST("/:book_id/tags/:tag_id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.AddBookTag)
+		apiBooks.POST("/:book_id/tags/:tag_id/remove", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.RemoveBookTag)
 	}
 	// Авторы
 	apiAuthors := r.Group("/api/authors")
 	{
-		apiAuthors.GET("", authorHandler.ListAuthors)
-		apiAuthors.GET("/:id", authorHandler.GetAuthorByID)
-		apiAuthors.POST("", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.CreateAuthor)
-		apiAuthors.POST("/:id", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.UpdateAuthor)
-		apiAuthors.DELETE("/:id", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.DeleteAuthor)
+		apiAuthors.GET("", middleware.AuthRequired(), authorHandler.ListAuthors)
+		apiAuthors.GET("/:id", middleware.AuthRequired(), authorHandler.GetAuthorByID)
+		apiAuthors.POST("", middleware.AuthRequired(), authorHandler.CreateAuthor)
+		apiAuthors.POST("/:id", middleware.AuthRequired(), authorHandler.UpdateAuthor)
+		apiAuthors.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.DeleteAuthor)
 	}
 
 	// Комментарии
@@ -106,11 +106,11 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	// Пользователи
 	apiUsers := r.Group("/api/users")
 	{
-		apiUsers.GET("", middleware.AdminOnly(), userHandler.GetUsers)
-		apiUsers.POST("", middleware.AdminOnly(), userHandler.СreateUser)
-		apiUsers.PUT("/:id", middleware.AuthRequired(), userHandler.UpdateUser)
-		apiUsers.DELETE("/:id", middleware.AdminOnly(), userHandler.SoftDeleteUser)
-		apiUsers.DELETE("/:id/hard", middleware.SuperAdminOnly(), userHandler.HardDeleteUser)
+		apiUsers.GET("", middleware.AuthRequired(), middleware.AdminOnly(), userHandler.GetUsers)
+		apiUsers.POST("", middleware.AuthRequired(), middleware.AdminOnly(), userHandler.СreateUser)
+		apiUsers.PUT("/:id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), userHandler.UpdateUser)
+		apiUsers.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), userHandler.SoftDeleteUser)
+		apiUsers.POST("/:id/harddelete", middleware.AuthRequired(), middleware.SuperAdminOnly(), userHandler.HardDeleteUser)
 	}
 
 	// Аутентификация
@@ -123,13 +123,13 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	// Теги
 	apiTags := r.Group("/api/tags")
 	{
-		apiTags.GET("", tagHandler.SearchTags) // ?query=
-		apiTags.GET("/:id", tagHandler.GetTagByID)
-		apiTags.POST("", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.CreateTag)
+		apiTags.GET("", middleware.AuthRequired(), tagHandler.SearchTags) // ?query=
+		apiTags.GET("/:id", middleware.AuthRequired(), tagHandler.GetTagByID)
+		apiTags.POST("", middleware.AuthRequired(), tagHandler.CreateTag)
 		apiTags.PUT("/:id", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.UpdateTag)
-		apiTags.DELETE("/:id", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.DeleteTag)
-		apiTags.GET("/book/:bookID", tagHandler.GetTagsByBookID)
-		apiTags.POST("/assign", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.AssignTagToBook)
-		apiTags.DELETE("/remove", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.RemoveTagFromBook)
+		apiTags.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.DeleteTag)
+		apiTags.GET("/book/:bookID", middleware.AuthRequired(), tagHandler.GetTagsByBookID)
+		apiTags.POST("/assign", middleware.AuthRequired(), middleware.OwnerOrAdmin(), tagHandler.AssignTagToBook)
+		apiTags.POST("/remove", middleware.AuthRequired(), middleware.OwnerOrAdmin(), tagHandler.RemoveTagFromBook)
 	}
 }

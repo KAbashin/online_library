@@ -85,12 +85,18 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Комментарии
 CREATE TABLE IF NOT EXISTS comments (
-    id SERIAL PRIMARY KEY,
-    book_id INT REFERENCES books(id) ON DELETE CASCADE,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-    );
+   id SERIAL PRIMARY KEY,
+   book_id INT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+   user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   text TEXT NOT NULL,
+   created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+   updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+   status VARCHAR(20) DEFAULT 'active'
+);
+
+CREATE INDEX idx_comments_book_id ON comments(book_id);
+CREATE INDEX idx_comments_user_id ON comments(user_id);
+CREATE INDEX idx_comments_status ON comments(status);
 
 -- Файлы книги
 CREATE TABLE IF NOT EXISTS book_files (
