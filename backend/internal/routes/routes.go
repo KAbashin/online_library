@@ -53,7 +53,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	}
 
 	// Книги
-	// TODO проработать права доступа !!!!
 	apiBooks := r.Group("/api/books")
 	{
 		// Публичные
