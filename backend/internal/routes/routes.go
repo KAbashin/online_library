@@ -38,6 +38,10 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	bookService := service.NewBookService(bookRepo)
 	bookHandler := handlers.NewBookHandler(bookService)
 
+	commentRepo := repository.NewCommentRepository(db)
+	commentService := service.NewCommentService(commentRepo)
+	commentHandler := handlers.NewCommentHandler(commentService)
+
 	// Категории
 	apiCategories := r.Group("/api/categories")
 	{
@@ -87,19 +91,27 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		apiBooks.POST("/:book_id/tags/:tag_id/remove", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.RemoveBookTag)
 	}
 	// Авторы
-	apiAuthors := r.Group("/api/authors")
+	apiAuthors := r.Group("/api/authors", middleware.AuthRequired())
 	{
-		apiAuthors.GET("", middleware.AuthRequired(), authorHandler.ListAuthors)
-		apiAuthors.GET("/:id", middleware.AuthRequired(), authorHandler.GetAuthorByID)
-		apiAuthors.POST("", middleware.AuthRequired(), authorHandler.CreateAuthor)
-		apiAuthors.POST("/:id", middleware.AuthRequired(), authorHandler.UpdateAuthor)
-		apiAuthors.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), authorHandler.DeleteAuthor)
+		apiAuthors.GET("", authorHandler.ListAuthors)
+		apiAuthors.GET("/:id", authorHandler.GetAuthorByID)
+		apiAuthors.POST("", authorHandler.CreateAuthor)
+		apiAuthors.POST("/:id", authorHandler.UpdateAuthor)
+		apiAuthors.POST("/:id/delete", middleware.AdminOnly(), authorHandler.DeleteAuthor)
 	}
 
 	// Комментарии
-	apiComments := r.Group("/api/comments")
+	apiComments := r.Group("/api/comments", middleware.AuthRequired())
 	{
-		apiComments.POST("/comments", middleware.AuthRequired(), handlers.CreateComment) // Middleware на auth нужно отдельно  // добавить (только для авторизованных).
+		apiComments.POST("", commentHandler.CreateComment)                                       // создание
+		apiComments.POST("/:id", middleware.OwnerOrAdmin(), commentHandler.UpdateComment)        // обновление текста (автор или админ)
+		apiComments.POST("/:id/delete", middleware.OwnerOrAdmin(), commentHandler.DeleteComment) // мягкое удаление
+
+		apiComments.GET("/book/:book_id", commentHandler.GetCommentsByBook) // пагинация ?limit=&offset=
+		apiComments.GET("/user/:user_id", middleware.OwnerOrAdmin(), commentHandler.GetCommentsByUser)
+		apiComments.GET("/last", commentHandler.GetLastComments)
+
+		apiComments.POST("/:id/status", middleware.AdminOnly(), commentHandler.SetStatus)
 	}
 
 	// Пользователи
