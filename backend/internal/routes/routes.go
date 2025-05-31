@@ -1,37 +1,146 @@
 package routes
 
 import (
-	"online_library/backend/internal/handlers"
-
+	"database/sql"
 	"github.com/gin-gonic/gin"
+	"online_library/backend/internal/handlers"
+	"online_library/backend/internal/middleware"
+	"online_library/backend/internal/repository"
+	"online_library/backend/internal/service"
 )
 
-func SetupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	api := r.Group("/api")
-	{
-		// Категории
-		api.GET("/categories", handlers.GetRootCategories)                // список корневых категорий.
-		api.GET("/categories/:id/children", handlers.GetCategoryChildren) //  подкатегории.
-		api.GET("/categories/:id/books", handlers.GetBooksByCategory)     // книги в категории (с пагинацией).
+	//bookHandler := handlers.NewBookHandler(db)
 
-		// Книги
-		api.GET("/books/:id", handlers.GetBookByID) // детали книги.
-		api.GET("/books", handlers.SearchBooks)     // поиск/фильтрация.
-		api.POST("/books", handlers.CreateBook)     // Middleware на админа нужно отдельно // добавление (только для админов).
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
+	userHandler := handlers.NewUserHandler(userService)
+
+	authService := service.NewAuthService(userRepo, userService)
+	authHandler := handlers.NewAuthHandler(authService)
+
+	categoryRepo := repository.NewCategoryRepository(db)
+	categoryService := service.NewCategoryService(categoryRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
+
+	tagRepo := repository.NewTagRepository(db)
+	tagService := service.NewTagService(tagRepo)
+	tagHandler := handlers.NewTagHandler(tagService)
+
+	authorRepo := repository.NewAuthorRepository(db)
+	authorService := service.NewAuthorService(authorRepo)
+	authorHandler := handlers.NewAuthorHandler(authorService)
+
+	bookRepo := repository.NewBookRepository(db)
+	bookService := service.NewBookService(bookRepo)
+	bookHandler := handlers.NewBookHandler(bookService)
+
+	commentRepo := repository.NewCommentRepository(db)
+	commentService := service.NewCommentService(commentRepo)
+	commentHandler := handlers.NewCommentHandler(commentService)
+
+	// Категории
+	apiCategories := r.Group("/api/categories")
+	{
+		apiCategories.GET("", middleware.AuthRequired(), categoryHandler.GetAllCategories) // всё дерево категорий
+		apiCategories.GET("/root", middleware.AuthRequired(), categoryHandler.GetRootCategories)
+		apiCategories.GET("/:id", middleware.AuthRequired(), categoryHandler.GetCategoryByID)
+		apiCategories.GET("/:id/children", middleware.AuthRequired(), categoryHandler.GetCategoryChildren)
+		apiCategories.GET("/:id/books", middleware.AuthRequired(), categoryHandler.GetBooksInCategory)
+
+		apiCategories.POST("", middleware.AuthRequired(), middleware.AdminOnly(), categoryHandler.CreateCategory)
+		apiCategories.POST("/:id", middleware.AuthRequired(), middleware.AdminOnly(), categoryHandler.UpdateCategory)
+		apiCategories.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), categoryHandler.DeleteCategory)
+	}
+
+	// Книги
+	apiBooks := r.Group("/api/books")
+	{
+		// Публичные
+		apiBooks.GET("", middleware.AuthRequired(), bookHandler.SearchBooks)
+		apiBooks.GET("/:id", middleware.AuthRequired(), bookHandler.GetBookByID)
+		apiBooks.GET("/author/:author_id", middleware.AuthRequired(), bookHandler.GetBooksByAuthor)
+		apiBooks.GET("/tag/:tag_id", middleware.AuthRequired(), bookHandler.GetBooksByTag)
+		apiBooks.GET("/duplicates/:title", middleware.AuthRequired(), bookHandler.GetDuplicateBooks)
+		apiBooks.GET("/mine", middleware.AuthRequired(), bookHandler.GetUserBooks)
+
+		// Избранное
+		apiBooks.GET("/favorites", middleware.AuthRequired(), bookHandler.GetUserFavoriteBooks)
+		apiBooks.POST("/:book_id/favorite/add", middleware.AuthRequired(), bookHandler.AddBookToFavorites)
+		apiBooks.POST("/:book_id/favorite/remove", middleware.AuthRequired(), bookHandler.RemoveBookFromFavorites)
+
+		// CRUD
+		apiBooks.POST("", middleware.AuthRequired(), bookHandler.CreateBook)
+		apiBooks.POST("/:id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.UpdateBook)
+		apiBooks.POST("/:id/delete", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.DeleteBook)
+
+		// Статус
+		apiBooks.POST("/:book_id/status", middleware.AuthRequired(), middleware.AdminOnly(), bookHandler.UpdateBookStatus)
 
 		// Авторы
-		api.GET("/authors/:id", handlers.GetAuthorByID) //  страница автора + его книги.
-		api.GET("/authors", handlers.SearchAuthors)     // поиск авторов.
+		apiBooks.POST("/:book_id/authors", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.SetBookAuthors)
+		apiBooks.POST("/:book_id/authors/:author_id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.AddBookAuthor)
+		apiBooks.POST("/:book_id/authors/:author_id/remove", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.RemoveBookAuthor)
 
-		// Комментарии
-		api.GET("/books/:id/comments", handlers.GetCommentsForBook) // список комментариев.
-		api.POST("/comments", handlers.CreateComment)               // Middleware на auth нужно отдельно  // добавить (только для авторизованных).
+		// Теги
+		apiBooks.POST("/:book_id/tags", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.SetBookTags)
+		apiBooks.POST("/:book_id/tags/:tag_id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.AddBookTag)
+		apiBooks.POST("/:book_id/tags/:tag_id/remove", middleware.AuthRequired(), middleware.OwnerOrAdmin(), bookHandler.RemoveBookTag)
+	}
+	// Авторы
+	apiAuthors := r.Group("/api/authors", middleware.AuthRequired())
+	{
+		apiAuthors.GET("", authorHandler.ListAuthors)
+		apiAuthors.GET("/:id", authorHandler.GetAuthorByID)
+		apiAuthors.POST("", authorHandler.CreateAuthor)
+		apiAuthors.POST("/:id", authorHandler.UpdateAuthor)
+		apiAuthors.POST("/:id/delete", middleware.AdminOnly(), authorHandler.DeleteAuthor)
+	}
 
-		// Аутентификация
-		api.POST("/auth/login", handlers.Login)       // вход (JWT-токен в ответе).
-		api.POST("/auth/register", handlers.Register) // регистрация.
+	// Комментарии
+	apiComments := r.Group("/api/comments", middleware.AuthRequired())
+	{
+		apiComments.POST("", commentHandler.CreateComment)                                       // создание
+		apiComments.POST("/:id", middleware.OwnerOrAdmin(), commentHandler.UpdateComment)        // обновление текста (автор или админ)
+		apiComments.POST("/:id/delete", middleware.OwnerOrAdmin(), commentHandler.DeleteComment) // мягкое удаление
+
+		apiComments.GET("/book/:book_id", commentHandler.GetCommentsByBook) // пагинация ?limit=&offset=
+		apiComments.GET("/user/:user_id", middleware.OwnerOrAdmin(), commentHandler.GetCommentsByUser)
+		apiComments.GET("/last", commentHandler.GetLastComments)
+
+		apiComments.POST("/:id/status", middleware.AdminOnly(), commentHandler.SetStatus)
+	}
+
+	// Пользователи
+	apiUsers := r.Group("/api/users")
+	{
+		apiUsers.GET("", middleware.AuthRequired(), middleware.AdminOnly(), userHandler.GetUsers)
+		apiUsers.POST("", middleware.AuthRequired(), middleware.AdminOnly(), userHandler.СreateUser)
+		apiUsers.PUT("/:id", middleware.AuthRequired(), middleware.OwnerOrAdmin(), userHandler.UpdateUser)
+		apiUsers.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), userHandler.SoftDeleteUser)
+		apiUsers.POST("/:id/harddelete", middleware.AuthRequired(), middleware.SuperAdminOnly(), userHandler.HardDeleteUser)
+	}
+
+	// Аутентификация
+	apiAuth := r.Group("/api/auth")
+	{
+		apiAuth.POST("/login", authHandler.Login)       // вход (JWT-токен в ответе).
+		apiAuth.POST("/register", authHandler.Register) // регистрация.
+	}
+
+	// Теги
+	apiTags := r.Group("/api/tags")
+	{
+		apiTags.GET("", middleware.AuthRequired(), tagHandler.SearchTags) // ?query=
+		apiTags.GET("/:id", middleware.AuthRequired(), tagHandler.GetTagByID)
+		apiTags.POST("", middleware.AuthRequired(), tagHandler.CreateTag)
+		apiTags.PUT("/:id", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.UpdateTag)
+		apiTags.POST("/:id/delete", middleware.AuthRequired(), middleware.AdminOnly(), tagHandler.DeleteTag)
+		apiTags.GET("/book/:bookID", middleware.AuthRequired(), tagHandler.GetTagsByBookID)
+		apiTags.POST("/assign", middleware.AuthRequired(), middleware.OwnerOrAdmin(), tagHandler.AssignTagToBook)
+		apiTags.POST("/remove", middleware.AuthRequired(), middleware.OwnerOrAdmin(), tagHandler.RemoveTagFromBook)
 	}
 }
