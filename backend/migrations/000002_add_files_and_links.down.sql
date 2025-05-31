@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS book_links;
+DROP TABLE IF EXISTS book_files;
