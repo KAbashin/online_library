@@ -24,13 +24,20 @@ backend/<br>
 └── docs/ # Swagger/OpenAPI-документация<br>
 <br><br>
 frontend/<br>
-├── public/ # Статика<br>
+├── public/                 # index.html, favicon<br>
 └── src/<br>
-├── views/ # Страницы<br>
-├── store/ # Pinia/Vuex<br>
-└── api.js # API-запросы<br>
+├── assets/             # картинки, иконки, css<br>
+├── components/         # переиспользуемые Vue-компоненты (например: BookCard.vue, CommentList.vue)<br>
+├── views/              # страницы сайта (Home.vue, BookDetails.vue, Category.vue)<br>
+├── layouts/            # макеты страниц (MainLayout.vue, AdminLayout.vue)<br>
+├── router/             # Vue Router (навигация между страницами)<br>
+│   └── index.js<br>
+├── store/              # Pinia - глобальное хранилище (authStore, userStore, bookStore)<br>
+├── api/                # Axios-инстансы и API-запросы (auth.js, books.js, comments.js и т.д.)<br>
+├── utils/              # Вспомогательные функции (formatDate.js, debounce.js)<br>
+├── App.vue             # Корневой компонент<br>
+└── main.js             # Точка входа (инициализация app, router, store)<br>
 <br>
-
 ---
 
 ## 2. API Endpoints (REST)
