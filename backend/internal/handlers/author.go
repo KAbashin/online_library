@@ -16,7 +16,6 @@ func NewAuthorHandler(service service.AuthorServiceInterface) *AuthorHandler {
 	return &AuthorHandler{service: service}
 }
 
-// POST /api/authors
 func (h *AuthorHandler) CreateAuthor(c *gin.Context) {
 	var author models.Author
 	if err := c.ShouldBindJSON(&author); err != nil {
@@ -32,7 +31,6 @@ func (h *AuthorHandler) CreateAuthor(c *gin.Context) {
 	c.JSON(http.StatusCreated, author)
 }
 
-// PUT /api/authors/:id
 func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -55,7 +53,6 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
 	c.JSON(http.StatusOK, author)
 }
 
-// DELETE /api/authors/:id
 func (h *AuthorHandler) DeleteAuthor(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -71,7 +68,6 @@ func (h *AuthorHandler) DeleteAuthor(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// GET /api/authors/:id
 func (h *AuthorHandler) GetAuthorByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -88,7 +84,6 @@ func (h *AuthorHandler) GetAuthorByID(c *gin.Context) {
 	c.JSON(http.StatusOK, author)
 }
 
-// GET /api/authors
 func (h *AuthorHandler) ListAuthors(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))

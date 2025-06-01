@@ -9,6 +9,7 @@ import (
 	// "online_library/backend/internal/handlers"
 	"online_library/backend/internal/routes"
 	// "online_library/backend/migrations"
+	"github.com/gin-contrib/cors"
 
 	_ "github.com/lib/pq"
 )
@@ -32,6 +33,14 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // или "*" для всех, но лучше указать явно
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
 	routes.SetupRoutes(r, db)
 
 	log.Println("Сервер запущен на :8080")

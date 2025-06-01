@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"online_library/backend/internal/middleware"
 	"online_library/backend/internal/service"
 )
 
@@ -65,6 +66,45 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "registered"})
 }
 
-func Logout(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
+func (h *AuthHandler) Logout(c *gin.Context) {
+	userID, _, ok := middleware.ExtractUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	err := h.Service.Logout(c, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to logout"})
+		return
+	}
+
+	// Клиенту можно сказать, что logout успешен, он должен удалить токен
+	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
+}
+
+func (h *AuthHandler) Me(c *gin.Context) {
+	userID, tokenRole, ok := middleware.ExtractUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	user, err := h.Service.UserService.GetByID(c, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
+		return
+	}
+
+	if tokenRole != user.Role {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "token is outdated, please login again"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":    user.ID,
+		"name":  user.Name,
+		"email": user.Email,
+		"role":  user.Role,
+	})
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"online_library/backend/internal/middleware"
 	"online_library/backend/internal/models"
+	"online_library/backend/internal/pkg/roles"
 	"online_library/backend/internal/service"
 	"strconv"
 )
@@ -425,7 +426,7 @@ func (h *BookHandler) UpdateBookStatus(c *gin.Context) {
 
 func (h *BookHandler) GetDuplicateBooks(c *gin.Context) {
 	_, role, ok := middleware.ExtractUser(c)
-	if !ok || !middleware.IsAdmin(role) {
+	if !ok || !roles.IsAdmin(role) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 		return
 	}

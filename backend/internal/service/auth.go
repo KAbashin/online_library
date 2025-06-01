@@ -1,18 +1,25 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
 	"online_library/backend/internal/pkg/auth"
 	"online_library/backend/internal/repository"
 )
 
+type AuthServiceInterface interface {
+	Register(email, name, password string, bio string) error
+	Login(email, password string) (string, error)
+	Logout(ctx context.Context, userID int) error
+}
+
 type AuthService struct {
-	Repo        *repository.UserRepo
+	Repo        repository.UserRepository
 	UserService UserService
 }
 
-func NewAuthService(repo *repository.UserRepo, userService UserService) *AuthService {
+func NewAuthService(repo repository.UserRepository, userService UserService) *AuthService {
 	return &AuthService{
 		Repo:        repo,
 		UserService: userService,
@@ -51,4 +58,8 @@ func (s *AuthService) Login(email, password string) (string, error) {
 		return "", err
 	}
 	return token, nil
+}
+
+func (s *AuthService) Logout(ctx context.Context, userID int) error {
+	return s.Repo.IncrementTokenVersion(ctx, userID)
 }

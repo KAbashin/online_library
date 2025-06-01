@@ -2,8 +2,8 @@ package service
 
 import (
 	"fmt"
-	"online_library/backend/internal/middleware"
 	"online_library/backend/internal/models"
+	"online_library/backend/internal/pkg/roles"
 	"online_library/backend/internal/repository"
 )
 
@@ -39,7 +39,7 @@ func NewBookService(repo repository.BookRepository) BookService {
 }
 
 func getViewableStatuses(userRole string) []string {
-	if middleware.IsAdmin(userRole) {
+	if roles.IsAdmin(userRole) {
 		return []string{
 			models.StatusBookVisible,
 			models.StatusBookArchived,
@@ -48,14 +48,14 @@ func getViewableStatuses(userRole string) []string {
 		}
 	}
 
-	if userRole == models.RoleUser {
+	if userRole == roles.RoleUser {
 		return []string{
 			models.StatusBookVisible,
 			models.StatusBookQuarantine,
 		}
 	}
 
-	if userRole == models.RoleNewUser {
+	if userRole == roles.RoleNewUser {
 		return []string{}
 	}
 
@@ -64,7 +64,7 @@ func getViewableStatuses(userRole string) []string {
 }
 
 func (s *bookService) checkBookOwnership(bookID, userID int, userRole string) error {
-	if middleware.IsAdmin(userRole) {
+	if roles.IsAdmin(userRole) {
 		return nil
 	}
 
@@ -81,7 +81,7 @@ func (s *bookService) checkBookOwnership(bookID, userID int, userRole string) er
 }
 
 func (s *bookService) CreateBook(book *models.Book, userRole string, userID int) (int, error) {
-	if middleware.IsAdmin(userRole) {
+	if roles.IsAdmin(userRole) {
 		book.Status = models.StatusBookVisible
 	} else {
 		book.Status = models.StatusBookQuarantine
@@ -167,7 +167,7 @@ func (s *bookService) RemoveBookTag(bookID, tagID int, userID int, userRole stri
 }
 
 func (s *bookService) UpdateBookStatus(bookID int, status string, userRole string) error {
-	if !middleware.IsAdmin(userRole) {
+	if !roles.IsAdmin(userRole) {
 		return fmt.Errorf("permission denied: only admin can update status")
 	}
 	return s.repo.UpdateBookStatus(bookID, status)

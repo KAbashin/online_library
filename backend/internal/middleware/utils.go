@@ -2,16 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"online_library/backend/internal/models"
 )
-
-func IsAdmin(role string) bool {
-	return role == models.RoleAdmin || role == models.RoleSuperAdmin
-}
-
-func IsSuperAdmin(role string) bool {
-	return role == models.RoleSuperAdmin
-}
 
 func ExtractUser(c *gin.Context) (int, string, bool) {
 	userIDRaw, ok1 := c.Get("userID")

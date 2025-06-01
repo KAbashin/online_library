@@ -16,6 +16,8 @@ type UserService interface {
 	CheckEmailExists(email string) (bool, error)
 	SoftDeleteUser(ctx context.Context, id int) error
 	HardDeleteUser(ctx context.Context, id int) error
+	GetByID(ctx context.Context, id int) (*models.User, error)
+	IncrementTokenVersion(ctx context.Context, userID int) error
 }
 
 type userService struct {
@@ -66,4 +68,12 @@ func (s *userService) SoftDeleteUser(ctx context.Context, id int) error {
 
 func (s *userService) HardDeleteUser(ctx context.Context, id int) error {
 	return s.repo.HardDeleteUserByID(ctx, id)
+}
+
+func (s *userService) GetByID(ctx context.Context, id int) (*models.User, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
+func (s *userService) IncrementTokenVersion(ctx context.Context, userID int) error {
+	return s.repo.IncrementTokenVersion(ctx, userID)
 }

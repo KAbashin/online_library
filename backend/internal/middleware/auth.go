@@ -3,14 +3,23 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"online_library/backend/internal/models"
 	"online_library/backend/internal/pkg/auth"
+	"online_library/backend/internal/pkg/roles"
+	"online_library/backend/internal/service"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AuthRequired() gin.HandlerFunc {
+type AuthMiddleware struct {
+	userService service.UserService
+}
+
+func NewAuthMiddleware(userService service.UserService) *AuthMiddleware {
+	return &AuthMiddleware{userService: userService}
+}
+
+func (m *AuthMiddleware) AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
 		if header == "" || !strings.HasPrefix(header, "Bearer ") {
@@ -25,6 +34,17 @@ func AuthRequired() gin.HandlerFunc {
 			return
 		}
 
+		user, err := m.userService.GetByID(c, claims.UserID)
+		if err != nil || user == nil || !user.Is_active {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
+			return
+		}
+
+		if user.TokenVersion != claims.TokenVersion {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "session expired"})
+			return
+		}
+
 		c.Set("userID", claims.UserID)
 		c.Set("role", claims.Role)
 
@@ -36,7 +56,7 @@ func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, ok := c.Get("role")
 		role, _ := roleVal.(string)
-		if !ok || (role != models.RoleAdmin && role != models.RoleSuperAdmin) {
+		if !ok || (role != roles.RoleAdmin && role != roles.RoleSuperAdmin) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 			return
 		}
@@ -47,7 +67,7 @@ func AdminOnly() gin.HandlerFunc {
 func SuperAdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
-		if !exists || role != models.RoleSuperAdmin {
+		if !exists || role != roles.RoleSuperAdmin {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "superadmin access required"})
 			return
 		}
@@ -62,7 +82,7 @@ func OwnerOrAdmin() gin.HandlerFunc {
 		role, _ := roleVal.(string)
 
 		paramID := c.Param("userID") // string
-		if !ok || (fmt.Sprintf("%v", userIDFromToken) != paramID && !IsAdmin(role)) {
+		if !ok || (fmt.Sprintf("%v", userIDFromToken) != paramID && !roles.IsAdmin(role)) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied"})
 			return
 		}

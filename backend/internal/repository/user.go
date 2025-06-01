@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"online_library/backend/internal/models"
+	"online_library/backend/internal/pkg/roles"
 )
 
 type UserRepository interface {
@@ -17,6 +18,8 @@ type UserRepository interface {
 	SoftDeleteUserByID(ctx context.Context, id int) error
 	HardDeleteUserByID(ctx context.Context, id int) error
 	AdminUpdateUser(ctx context.Context, id int, input models.AdminUserUpdateInput) (*models.User, error)
+	IncrementTokenVersion(ctx context.Context, userID int) error
+	GetByID(ctx context.Context, id int) (*models.User, error)
 }
 
 type UserRepo struct {
@@ -64,9 +67,18 @@ func (r *UserRepo) GetByEmail(email string) (*models.User, error) {
 func (r *UserRepo) GetByID(ctx context.Context, id int) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, email, name, role, bio, registered_at
+		SELECT id, email, name, role, bio, registered_at, token_version, is_active
 		FROM users WHERE id = $1
-	`, id).Scan(&u.ID, &u.Email, &u.Name, &u.Role, &u.Bio, &u.RegisteredAt)
+	`, id).Scan(
+		&u.ID,
+		&u.Email,
+		&u.Name,
+		&u.Role,
+		&u.Bio,
+		&u.RegisteredAt,
+		&u.TokenVersion,
+		&u.Is_active,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +97,7 @@ func (r *UserRepo) SetNewUser(email string, name string, passwordHash string, bi
 	_, err = r.db.Exec(`
 		INSERT INTO users (email, name, password_hash, role, bio)
 		VALUES ($1, $2, $3, $4, $5)
-		`, email, name, passwordHash, models.RoleNewUser, bio)
+		`, email, name, passwordHash, roles.RoleNewUser, bio)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert user: %w", err)
@@ -150,4 +162,9 @@ func (r *UserRepo) AdminUpdateUser(ctx context.Context, id int, input models.Adm
 	return r.GetByID(ctx, id)
 }
 
-// При смене роли у пользователя UPDATE users SET role = 'user', token_version = token_version + 1 WHERE id = ?;
+func (r *UserRepo) IncrementTokenVersion(ctx context.Context, userID int) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE users SET token_version = token_version + 1 WHERE id = $1
+	`, userID)
+	return err
+}

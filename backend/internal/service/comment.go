@@ -3,12 +3,9 @@ package service
 import (
 	"fmt"
 	"online_library/backend/internal/models"
+	"online_library/backend/internal/pkg/roles"
 	"online_library/backend/internal/repository"
 	"time"
-)
-
-const (
-	MaxLimit = "100"
 )
 
 type CommentService interface {
@@ -46,7 +43,7 @@ func (s *commentService) Update(comment *models.Comment, userID int, userRole st
 	}
 
 	isOwner := existing.UserID == userID
-	isAdmin := userRole == models.RoleAdmin || userRole == models.RoleSuperAdmin
+	isAdmin := userRole == roles.RoleAdmin || userRole == roles.RoleSuperAdmin
 
 	if !isOwner && !isAdmin {
 		return fmt.Errorf("access denied: not owner or admin")
@@ -65,7 +62,7 @@ func (s *commentService) Delete(id, userID int, userRole string) error {
 	}
 
 	isOwner := comment.UserID == userID
-	isAdmin := userRole == models.RoleAdmin || userRole == models.RoleSuperAdmin
+	isAdmin := userRole == roles.RoleAdmin || userRole == roles.RoleSuperAdmin
 
 	if !isOwner && !isAdmin {
 		return fmt.Errorf("access denied: cannot delete")
@@ -95,7 +92,7 @@ func (s *commentService) GetLast(limit int) ([]models.Comment, error) {
 }
 
 func (s *commentService) SetStatus(id int, status, userRole string) error {
-	if userRole != models.RoleAdmin && userRole != models.RoleSuperAdmin {
+	if userRole != roles.RoleAdmin && userRole != roles.RoleSuperAdmin {
 		return fmt.Errorf("access denied: only admin can change status")
 	}
 

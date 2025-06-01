@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"online_library/backend/internal/middleware"
 	"online_library/backend/internal/models"
+	"online_library/backend/internal/pkg/roles"
 	"online_library/backend/internal/service"
 	"strconv"
 	"time"
@@ -98,7 +99,7 @@ func (h *CommentHandler) DeleteComment(c *gin.Context) {
 	}
 
 	isOwner := existing.UserID == userID
-	isAdmin := role == models.RoleAdmin || role == models.RoleSuperAdmin
+	isAdmin := role == roles.RoleAdmin || role == roles.RoleSuperAdmin
 	if !isOwner && !isAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
@@ -180,7 +181,7 @@ func (h *CommentHandler) GetLastComments(c *gin.Context) {
 
 func (h *CommentHandler) SetStatus(c *gin.Context) {
 	_, role, ok := middleware.ExtractUser(c)
-	if !ok || (role != models.RoleAdmin && role != models.RoleSuperAdmin) {
+	if !ok || (role != roles.RoleAdmin && role != roles.RoleSuperAdmin) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
