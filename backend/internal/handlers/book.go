@@ -95,7 +95,7 @@ func (h *BookHandler) DeleteBook(c *gin.Context) {
 }
 
 func (h *BookHandler) GetBookByID(c *gin.Context) {
-	_, userRole, ok := middleware.ExtractUser(c)
+	userID, userRole, ok := middleware.ExtractUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -107,7 +107,7 @@ func (h *BookHandler) GetBookByID(c *gin.Context) {
 		return
 	}
 
-	book, err := h.bookService.GetBookByID(bookID, userRole)
+	book, err := h.bookService.GetBookByID(bookID, userID, userRole)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

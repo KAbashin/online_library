@@ -54,7 +54,6 @@ func (s *userService) UpdateUser(ctx context.Context, id int, input models.UserI
 }
 
 func (s *userService) UpdateUserByAdmin(ctx context.Context, id int, input models.AdminUserUpdateInput) (*models.User, error) {
-	// возможно, тут стоит проверить права вызывающего (не в этом методе, а выше)
 	return s.repo.AdminUpdateUser(ctx, id, input)
 }
 

@@ -12,23 +12,29 @@ type BookRepository interface {
 	UpdateBook(book *models.Book) error
 	DeleteBook(id int) error
 	GetBookByID(id int, allowedStatuses []string) (*models.Book, error)
-	GetBooksByStatuses(statuses []string, offset, limit int) ([]models.Book, error)
+	GetBookMeta(bookID int) (*models.Book, error) // Только базовые данные: id, created_by
+
 	GetBooksByAuthor(authorID int, statuses []string, limit, offset int) ([]models.Book, error)
-	GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]models.Book, error)
+	GetAuthorsByBookID(bookID int) ([]models.Author, error)
 	SetBookAuthors(bookID int, authorIDs []int) error
 	AddBookAuthor(bookID, authorID int) error
 	RemoveBookAuthor(bookID, authorID int) error
+
+	GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]models.Book, error)
 	SetBookTags(bookID int, tagIDs []int) error
 	AddBookTag(bookID, tagID int) error
 	RemoveBookTag(bookID, tagID int) error
+
 	SearchBooks(query string, allowedStatuses []string, limit, offset int) ([]*models.Book, error)
 	GetDuplicateBooks(title string) ([]*models.Book, error)
+
 	GetUserBooks(userID int) ([]*models.Book, error)
 	GetUserFavoriteBooks(userID int, statuses []string) ([]*models.Book, error)
 	AddBookToFavorites(userID, bookID int) error
 	RemoveBookFromFavorites(userID, bookID int) error
+
+	GetBooksByStatuses(statuses []string, offset, limit int) ([]models.Book, error)
 	UpdateBookStatus(bookID int, status string) error
-	GetBookMeta(bookID int) (*models.Book, error) // Только базовые данные: id, created_by
 }
 
 type bookRepository struct {
@@ -204,6 +210,34 @@ func (r *bookRepository) GetBooksByAuthor(authorID int, statuses []string, limit
 		books = append(books, b)
 	}
 	return books, nil
+}
+
+func (r *bookRepository) GetAuthorsByBookID(bookID int) ([]models.Author, error) {
+	rows, err := r.db.Query(`
+		SELECT a.id, a.name_ru, a.name_en, a.bio, a.photo_url
+		FROM authors a
+		JOIN book_authors ba ON ba.author_id = a.id
+		WHERE ba.book_id = $1
+	`, bookID)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
+
+	var authors []models.Author
+	for rows.Next() {
+		var a models.Author
+		if err := rows.Scan(&a.ID, &a.NameRU, &a.NameEN, &a.Bio, &a.PhotoURL); err != nil {
+			return nil, err
+		}
+		authors = append(authors, a)
+	}
+	return authors, nil
 }
 
 func (r *bookRepository) GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]models.Book, error) {

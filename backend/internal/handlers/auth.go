@@ -78,8 +78,6 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to logout"})
 		return
 	}
-
-	// Клиенту можно сказать, что logout успешен, он должен удалить токен
 	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
 }
 

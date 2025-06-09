@@ -37,7 +37,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	authorHandler := handlers.NewAuthorHandler(authorService)
 
 	bookRepo := repository.NewBookRepository(db)
-	bookService := service.NewBookService(bookRepo)
+	bookService := service.NewBookService(bookRepo, tagRepo)
 	bookHandler := handlers.NewBookHandler(bookService)
 
 	commentRepo := repository.NewCommentRepository(db)
@@ -61,7 +61,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	// Книги
 	apiBooks := r.Group("/api/books")
 	{
-		// Публичные
+		//
 		apiBooks.GET("", authMiddleware.AuthRequired(), bookHandler.SearchBooks)
 		apiBooks.GET("/:book_id", authMiddleware.AuthRequired(), bookHandler.GetBookByID)
 		apiBooks.GET("/author/:author_id", authMiddleware.AuthRequired(), bookHandler.GetBooksByAuthor)

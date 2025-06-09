@@ -11,7 +11,7 @@ type BookService interface {
 	CreateBook(book *models.Book, userRole string, userID int) (int, error)
 	UpdateBook(book *models.Book, userID int, userRole string) error
 	DeleteBook(bookID int, userID int, userRole string) error
-	GetBookByID(bookID int, userRole string) (*models.Book, error)
+	GetBookByID(bookID int, userID int, userRole string) (*models.BookResponse, error)
 	GetBooksByStatuses(userRole string, offset, limit int) ([]models.Book, error)
 	GetBooksByAuthor(authorID int, userRole string, offset, limit int) ([]models.Book, error)
 	GetBooksByTag(tagID int, userRole string, offset, limit int) ([]models.Book, error)
@@ -31,11 +31,12 @@ type BookService interface {
 }
 
 type bookService struct {
-	repo repository.BookRepository
+	repo    repository.BookRepository
+	tagRepo repository.TagRepository
 }
 
-func NewBookService(repo repository.BookRepository) BookService {
-	return &bookService{repo: repo}
+func NewBookService(repo repository.BookRepository, tagRepo repository.TagRepository) BookService {
+	return &bookService{repo: repo, tagRepo: tagRepo}
 }
 
 func getViewableStatuses(userRole string) []string {
@@ -104,9 +105,45 @@ func (s *bookService) DeleteBook(bookID int, userID int, userRole string) error 
 	return s.repo.DeleteBook(bookID)
 }
 
-func (s *bookService) GetBookByID(bookID int, userRole string) (*models.Book, error) {
+func (s *bookService) GetBookByID(bookID int, userID int, userRole string) (*models.BookResponse, error) {
 	statuses := getViewableStatuses(userRole)
-	return s.repo.GetBookByID(bookID, statuses)
+
+	book, err := s.repo.GetBookByID(bookID, statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	// Проверка: доступен ли контент этому пользователю
+	if (book.Status == models.StatusBookPrivate || book.Status == models.StatusBookQuarantine) &&
+		!(book.CreatedBy == userID || roles.IsAdmin(userRole)) {
+		return nil, fmt.Errorf("access denied to this book")
+	}
+
+	authors, err := s.repo.GetAuthorsByBookID(bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	tags, err := s.tagRepo.GetTagsByBookID(bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.BookResponse{
+		ID:          book.ID,
+		Title:       book.Title,
+		Description: book.Description,
+		PublishYear: book.PublishYear,
+		Pages:       book.Pages,
+		Language:    book.Language,
+		Publisher:   book.Publisher,
+		Type:        book.Type,
+		Rating:      book.Rating,
+		CoverURL:    book.CoverURL,
+		Status:      book.Status,
+		Authors:     authors,
+		Tags:        tags,
+	}, nil
 }
 
 func (s *bookService) GetBooksByStatuses(userRole string, offset, limit int) ([]models.Book, error) {
