@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"online_library/backend/internal/dto"
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/service"
 	"strconv"
@@ -17,18 +18,25 @@ func NewAuthorHandler(service service.AuthorServiceInterface) *AuthorHandler {
 }
 
 func (h *AuthorHandler) CreateAuthor(c *gin.Context) {
-	var author models.Author
-	if err := c.ShouldBindJSON(&author); err != nil {
+	var aDto dto.AuthorDTO
+	if err := c.ShouldBindJSON(&aDto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 
-	if err := h.service.CreateAuthor(&author); err != nil {
+	author := &models.Author{
+		NameRU:   aDto.NameRU,
+		NameEN:   aDto.NameEN,
+		Bio:      aDto.Bio,
+		PhotoURL: aDto.PhotoURL,
+	}
+
+	if err := h.service.CreateAuthor(author); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusCreated, author)
+	aDto.ID = author.ID
+	c.JSON(http.StatusCreated, aDto)
 }
 
 func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
@@ -38,19 +46,26 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
 		return
 	}
 
-	var author models.Author
-	if err := c.ShouldBindJSON(&author); err != nil {
+	var aDto dto.AuthorDTO
+	if err := c.ShouldBindJSON(&aDto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
-	author.ID = id
+	author := &models.Author{
+		ID:       id,
+		NameRU:   aDto.NameRU,
+		NameEN:   aDto.NameEN,
+		Bio:      aDto.Bio,
+		PhotoURL: aDto.PhotoURL,
+	}
 
-	if err := h.service.UpdateAuthor(&author); err != nil {
+	if err := h.service.UpdateAuthor(author); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, author)
+	aDto.ID = id
+	c.JSON(http.StatusOK, aDto)
 }
 
 func (h *AuthorHandler) DeleteAuthor(c *gin.Context) {

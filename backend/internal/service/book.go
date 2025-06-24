@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"online_library/backend/internal/dto"
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/pkg/roles"
 	"online_library/backend/internal/repository"
@@ -11,7 +12,11 @@ type BookService interface {
 	CreateBook(book *models.Book, userRole string, userID int) (int, error)
 	UpdateBook(book *models.Book, userID int, userRole string) error
 	DeleteBook(bookID int, userID int, userRole string) error
-	GetBookByID(bookID int, userID int, userRole string) (*models.BookResponse, error)
+
+	GetBookDTO(bookID int, userID int, userRole string) (*dto.BookDTO, error)
+	GetBookExtras(bookID int, userID int, userRole string) (*dto.BookExtrasDTO, error)
+
+	//GetBookByID(bookID int, userID int, userRole string) (*models.BookResponse, error)
 	GetBooksByStatuses(userRole string, offset, limit int) ([]models.Book, error)
 	GetBooksByAuthor(authorID int, userRole string, offset, limit int) ([]models.Book, error)
 	GetBooksByTag(tagID int, userRole string, offset, limit int) ([]models.Book, error)
@@ -31,12 +36,20 @@ type BookService interface {
 }
 
 type bookService struct {
-	repo    repository.BookRepository
-	tagRepo repository.TagRepository
+	repo        repository.BookRepository
+	tagRepo     repository.TagRepository
+	imageRepo   repository.ImageRepository
+	fileRepo    repository.FileRepository
+	commentRepo repository.CommentRepository
 }
 
-func NewBookService(repo repository.BookRepository, tagRepo repository.TagRepository) BookService {
-	return &bookService{repo: repo, tagRepo: tagRepo}
+func NewBookService(repo repository.BookRepository,
+	tagRepo repository.TagRepository,
+	imageRepo repository.ImageRepository,
+	fileRepo repository.FileRepository,
+	commentRepo repository.CommentRepository,
+) BookService {
+	return &bookService{repo: repo, tagRepo: tagRepo, imageRepo: imageRepo, fileRepo: fileRepo, commentRepo: commentRepo}
 }
 
 func getViewableStatuses(userRole string) []string {
@@ -105,7 +118,7 @@ func (s *bookService) DeleteBook(bookID int, userID int, userRole string) error 
 	return s.repo.DeleteBook(bookID)
 }
 
-func (s *bookService) GetBookByID(bookID int, userID int, userRole string) (*models.BookResponse, error) {
+func (s *bookService) GetBookDTO(bookID int, userID int, userRole string) (*dto.BookDTO, error) {
 	statuses := getViewableStatuses(userRole)
 
 	book, err := s.repo.GetBookByID(bookID, statuses)
@@ -129,7 +142,22 @@ func (s *bookService) GetBookByID(bookID int, userID int, userRole string) (*mod
 		return nil, err
 	}
 
-	return &models.BookResponse{
+	bookTags, err := s.tagRepo.GetBookTags(bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err := s.fileRepo.GetFilesByBookID(bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	images, err := s.imageRepo.GetImagesByBookID(bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.BookDTO{
 		ID:          book.ID,
 		Title:       book.Title,
 		Description: book.Description,
@@ -138,11 +166,44 @@ func (s *bookService) GetBookByID(bookID int, userID int, userRole string) (*mod
 		Language:    book.Language,
 		Publisher:   book.Publisher,
 		Type:        book.Type,
-		Rating:      book.Rating,
 		CoverURL:    book.CoverURL,
-		Status:      book.Status,
-		Authors:     authors,
-		Tags:        tags,
+		Authors:     dto.ConvertAuthors(authors),
+		Tags:        dto.MergeTagsWithWeight(tags, bookTags),
+		Files:       dto.ConvertBookFiles(files),
+		Images:      dto.ConvertBookImages(images),
+	}, nil
+}
+
+func (s *bookService) GetBookExtras(bookID int, userID int, userRole string) (*dto.BookExtrasDTO, error) {
+
+	inFav, err := s.repo.IsBookInFavorites(bookID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	comments, err := s.commentRepo.GetCommentsByBookID(bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	/* TODO
+	 relations, err :=s.repo.GetRelationsByBookID(bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	/*  TODO
+	rating, err := s.repo.GetRatingByBookID(bookID)
+	if err != nil {
+		return nil, err
+	}
+	*/
+
+	return &dto.BookExtrasDTO{
+		InFavorites: inFav,
+		Comments:    dto.ConvertBookComments(comments),
+		// Relations:   dto.ConvertBookRelations(relations), // TODO
+		//  Rating:      rating,  // TODO
 	}, nil
 }
 

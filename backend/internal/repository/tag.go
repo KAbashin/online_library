@@ -5,16 +5,33 @@ import (
 	"online_library/backend/internal/models"
 )
 
+// TagRepository определяет методы для управления тегами книг и связью между книгами и тегами.
 type TagRepository interface {
+	// GetAllTags возвращает все доступные теги, отсортированные по имени.
 	GetAllTags() ([]models.Tag, error)
+
+	// GetTagByID возвращает тег по его уникальному ID.
 	GetTagByID(id int) (models.Tag, error)
 
+	// CreateTag сохраняет новый тег в базе и возвращает его ID.
 	CreateTag(tag *models.Tag) error
+
+	// UpdateTag обновляет имя и цвет существующего тега.
 	UpdateTag(tag *models.Tag) error
+
+	// DeleteTag удаляет тег по его ID.
 	DeleteTag(id int) error
 
+	// GetTagsByBookID возвращает список тегов, связанных с конкретной книгой.
 	GetTagsByBookID(bookID int) ([]models.Tag, error)
+
+	// GetBookTags возвращает ассоциации тегов и их веса для указанной книги.
+	GetBookTags(bookID int) ([]models.BookTag, error)
+
+	// AssignTagToBook связывает тег с книгой. Если связь уже существует — обновляет её вес.
 	AssignTagToBook(bookTag *models.BookTag) error
+
+	// RemoveTagFromBook удаляет связь между книгой и тегом.
 	RemoveTagFromBook(bookID, tagID int) error
 }
 
@@ -102,6 +119,25 @@ func (r *tagRepo) GetTagsByBookID(bookID int) ([]models.Tag, error) {
 		tags = append(tags, tag)
 	}
 	return tags, nil
+}
+
+func (r *tagRepo) GetBookTags(bookID int) ([]models.BookTag, error) {
+	query := `SELECT book_id, tag_id, weight FROM book_tags WHERE book_id = $1`
+	rows, err := r.db.Query(query, bookID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var bookTags []models.BookTag
+	for rows.Next() {
+		var bt models.BookTag
+		if err := rows.Scan(&bt.BookID, &bt.TagID, &bt.Weight); err != nil {
+			return nil, err
+		}
+		bookTags = append(bookTags, bt)
+	}
+	return bookTags, rows.Err()
 }
 
 func (r *tagRepo) AssignTagToBook(bt *models.BookTag) error {

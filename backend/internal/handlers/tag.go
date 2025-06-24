@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"online_library/backend/internal/dto"
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/service"
 	"strconv"
@@ -26,58 +27,72 @@ func (h *TagHandler) SearchTags(c *gin.Context) {
 		return
 	}
 
-	if query == "" {
-		c.JSON(http.StatusOK, tags)
-		return
-	}
-
 	var filtered []models.Tag
-	queryLower := strings.ToLower(query)
-	for _, tag := range tags {
-		if strings.Contains(strings.ToLower(tag.Name), queryLower) {
-			filtered = append(filtered, tag)
+	if query != "" {
+		queryLower := strings.ToLower(query)
+		for _, tag := range tags {
+			if strings.Contains(strings.ToLower(tag.Name), queryLower) {
+				filtered = append(filtered, tag)
+			}
 		}
+	} else {
+		filtered = tags
 	}
 
-	c.JSON(http.StatusOK, filtered)
+	c.JSON(http.StatusOK, dto.ConvertTags(filtered))
 }
 
 func (h *TagHandler) GetTagByID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
+
 	tag, err := h.tagService.GetTagByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
 		return
 	}
-	c.JSON(http.StatusOK, tag)
+
+	c.JSON(http.StatusOK, dto.TagDTO{
+		ID:    tag.ID,
+		Name:  tag.Name,
+		Color: tag.Color,
+	})
 }
 
 func (h *TagHandler) CreateTag(c *gin.Context) {
-	var tag models.Tag
-	if err := c.ShouldBindJSON(&tag); err != nil {
+	var input dto.TagDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
 	}
-	if err := h.tagService.CreateTag(&tag); err != nil {
+
+	tag := input.ToModel()
+	if err := h.tagService.CreateTag(tag); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create tag"})
 		return
 	}
-	c.JSON(http.StatusCreated, tag)
+
+	input.ID = tag.ID
+	c.JSON(http.StatusCreated, input)
 }
 
 func (h *TagHandler) UpdateTag(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	var tag models.Tag
-	if err := c.ShouldBindJSON(&tag); err != nil {
+
+	var input dto.TagDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
 	}
-	tag.ID = id
-	if err := h.tagService.UpdateTag(&tag); err != nil {
+
+	input.ID = id
+	tag := input.ToModel()
+
+	if err := h.tagService.UpdateTag(tag); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update tag"})
 		return
 	}
-	c.JSON(http.StatusOK, tag)
+
+	c.JSON(http.StatusOK, input)
 }
 
 func (h *TagHandler) DeleteTag(c *gin.Context) {
@@ -91,12 +106,14 @@ func (h *TagHandler) DeleteTag(c *gin.Context) {
 
 func (h *TagHandler) GetTagsByBookID(c *gin.Context) {
 	bookID, _ := strconv.Atoi(c.Param("bookID"))
+
 	tags, err := h.tagService.GetTagsByBookID(bookID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch tags"})
 		return
 	}
-	c.JSON(http.StatusOK, tags)
+
+	c.JSON(http.StatusOK, dto.ConvertTags(tags))
 }
 
 func (h *TagHandler) AssignTagToBook(c *gin.Context) {

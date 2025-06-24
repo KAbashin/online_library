@@ -5,14 +5,30 @@ import (
 	"online_library/backend/internal/models"
 )
 
+// CategoryRepository определяет интерфейс для взаимодействия с таблицей категорий в базе данных.
 type CategoryRepository interface {
+	// GetAllCategories возвращает все категории из базы данных.
 	GetAllCategories() ([]models.Category, error)
+
+	// GetRootCategories возвращает все корневые (без родителя) категории.
 	GetRootCategories() ([]*models.Category, error)
+
+	// GetCategoryByID возвращает категорию по её идентификатору.
 	GetCategoryByID(id int) (*models.Category, error)
+
+	// GetCategoryChildren возвращает дочерние категории по ID родителя.
 	GetCategoryChildren(parentID int) ([]*models.Category, error)
+
+	// GetBooksByCategoryIDRecursive возвращает все книги из заданной категории и её подкатегорий (рекурсивно).
 	GetBooksByCategoryIDRecursive(categoryID int) ([]*models.Book, error)
+
+	// CreateCategory создаёт новую категорию и возвращает её ID.
 	CreateCategory(category *models.Category) (int, error)
+
+	// UpdateCategory обновляет существующую категорию по её ID.
 	UpdateCategory(category *models.Category) error
+
+	// DeleteCategory удаляет категорию по её ID.
 	DeleteCategory(id int) error
 }
 

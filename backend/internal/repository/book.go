@@ -7,33 +7,75 @@ import (
 	"strings"
 )
 
+// BookRepository определяет интерфейс взаимодействия с хранилищем книг.
 type BookRepository interface {
+	// CreateBook сохраняет новую книгу и возвращает её ID.
 	CreateBook(book *models.Book) (int, error)
+
+	// UpdateBook обновляет информацию о существующей книге.
 	UpdateBook(book *models.Book) error
+
+	// DeleteBook удаляет книгу по её ID.
 	DeleteBook(id int) error
+
+	// GetBookByID возвращает книгу по ID, если её статус находится в списке допустимых.
 	GetBookByID(id int, allowedStatuses []string) (*models.Book, error)
+
+	// GetBookMeta возвращает только основные метаданные книги: ID и created_by.
 	GetBookMeta(bookID int) (*models.Book, error) // Только базовые данные: id, created_by
 
+	// GetBooksByAuthor возвращает книги указанного автора с указанными статусами и пагинацией.
 	GetBooksByAuthor(authorID int, statuses []string, limit, offset int) ([]models.Book, error)
+
+	// GetAuthorsByBookID возвращает список авторов книги по её ID.
 	GetAuthorsByBookID(bookID int) ([]models.Author, error)
+
+	// SetBookAuthors заменяет всех авторов книги на переданный список.
 	SetBookAuthors(bookID int, authorIDs []int) error
+
+	// AddBookAuthor добавляет одного автора к книге.
 	AddBookAuthor(bookID, authorID int) error
+
+	// RemoveBookAuthor удаляет одного автора из книги.
 	RemoveBookAuthor(bookID, authorID int) error
 
+	// GetBooksByTag возвращает книги, связанные с указанным тегом, с фильтрацией по статусам.
 	GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]models.Book, error)
+
+	// SetBookTags заменяет все теги у книги на переданный список.
 	SetBookTags(bookID int, tagIDs []int) error
+
+	// AddBookTag добавляет тег к книге.
 	AddBookTag(bookID, tagID int) error
+
+	// RemoveBookTag удаляет тег у книги.
 	RemoveBookTag(bookID, tagID int) error
 
+	// SearchBooks ищет книги по запросу в заголовке или описании, фильтруя по статусам.
 	SearchBooks(query string, allowedStatuses []string, limit, offset int) ([]*models.Book, error)
+
+	// GetDuplicateBooks возвращает книги с похожими названиями (поиск по LIKE).
 	GetDuplicateBooks(title string) ([]*models.Book, error)
 
+	// GetUserBooks возвращает книги, созданные указанным пользователем.
 	GetUserBooks(userID int) ([]*models.Book, error)
+
+	// GetUserFavoriteBooks возвращает список книг, добавленных в избранное пользователем и соответствующих статусам.
 	GetUserFavoriteBooks(userID int, statuses []string) ([]*models.Book, error)
+
+	// IsBookInFavorites проверяет, добавлена ли книга в избранное у пользователя.
+	IsBookInFavorites(bookID int, userID int) (bool, error)
+
+	// AddBookToFavorites добавляет книгу в избранное пользователя.
 	AddBookToFavorites(userID, bookID int) error
+
+	// RemoveBookFromFavorites удаляет книгу из избранного пользователя.
 	RemoveBookFromFavorites(userID, bookID int) error
 
+	// GetBooksByStatuses возвращает книги с указанными статусами и пагинацией.
 	GetBooksByStatuses(statuses []string, offset, limit int) ([]models.Book, error)
+
+	// UpdateBookStatus обновляет статус книги.
 	UpdateBookStatus(bookID int, status string) error
 }
 
@@ -520,6 +562,23 @@ func (r *bookRepository) GetUserFavoriteBooks(userID int, statuses []string) ([]
 		books = append(books, &b)
 	}
 	return books, nil
+}
+
+func (r *bookRepository) IsBookInFavorites(bookID int, userID int) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM book_favorites
+			WHERE book_id = $1 AND user_id = $2
+		)
+	`
+
+	var exists bool
+	err := r.db.QueryRow(query, bookID, userID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check favorite: %w", err)
+	}
+
+	return exists, nil
 }
 
 func (r *bookRepository) AddBookToFavorites(userID, bookID int) error {

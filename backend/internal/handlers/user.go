@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"online_library/backend/internal/dto"
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/service"
 	"strconv"
@@ -22,7 +23,9 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "cannot fetch users"})
 		return
 	}
-	c.JSON(http.StatusOK, users)
+
+	userList := dto.ConvertToUserDTOs(users)
+	c.JSON(http.StatusOK, userList)
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
@@ -38,7 +41,8 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, user)
+	userResponse := dto.ConvertToUserDTO(user)
+	c.JSON(http.StatusCreated, userResponse)
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
@@ -55,13 +59,14 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.UpdateUser(c.Request.Context(), id, input)
+	updatedUser, err := h.service.UpdateUser(c.Request.Context(), id, input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	userResponse := dto.ConvertToUserDTO(updatedUser)
+	c.JSON(http.StatusOK, userResponse)
 }
 
 func (h *UserHandler) SoftDeleteUser(c *gin.Context) {

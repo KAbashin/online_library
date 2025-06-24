@@ -9,16 +9,36 @@ import (
 	"online_library/backend/internal/pkg/roles"
 )
 
+// UserRepository определяет контракт для работы с пользователями в системе.
 type UserRepository interface {
+	// GetAllActive возвращает список всех активных пользователей.
 	GetAllActive(ctx context.Context) ([]models.User, error)
+
+	// GetByEmail ищет пользователя по адресу электронной почты.
 	GetByEmail(email string) (*models.User, error)
+
+	// SetNewUser создаёт нового пользователя с хэшем пароля.
 	SetNewUser(email string, name string, passwordHash string, bio string) (*models.User, error)
+
+	// CheckEmailExists проверяет, существует ли пользователь с указанным email.
 	CheckEmailExists(email string) (bool, error)
+
+	// UpdateUserByID обновляет данные пользователя (имя, email, bio), если он активен.
 	UpdateUserByID(ctx context.Context, id int, input models.UserInput) (*models.User, error)
+
+	// SoftDeleteUserByID логически удаляет пользователя (ставит is_active = false).
 	SoftDeleteUserByID(ctx context.Context, id int) error
+
+	// HardDeleteUserByID физически удаляет пользователя из базы данных.
 	HardDeleteUserByID(ctx context.Context, id int) error
+
+	// AdminUpdateUser обновляет данные и роль пользователя с инкрементом token_version.
 	AdminUpdateUser(ctx context.Context, id int, input models.AdminUserUpdateInput) (*models.User, error)
+
+	// IncrementTokenVersion увеличивает версию токена для обеспечения отзыва JWT.
 	IncrementTokenVersion(ctx context.Context, userID int) error
+
+	// GetByID возвращает пользователя по его ID.
 	GetByID(ctx context.Context, id int) (*models.User, error)
 }
 

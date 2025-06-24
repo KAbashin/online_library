@@ -9,14 +9,14 @@ import (
 )
 
 type CommentService interface {
-	Create(comment *models.Comment) error
-	Update(comment *models.Comment, userID int, userRole string) error
+	Create(comment *models.BookComment) error
+	Update(comment *models.BookComment, userID int, userRole string) error
 	Delete(id, userID int, userRole string) error
 
-	GetByID(id int) (*models.Comment, error)
-	GetByBookID(bookID int, limit, offset int, statuses []string) ([]models.Comment, error)
-	GetByUserID(userID int, limit, offset int) ([]models.Comment, error)
-	GetLast(limit int) ([]models.Comment, error)
+	GetByID(id int) (*models.BookComment, error)
+	GetByBookID(bookID int, limit, offset int, statuses []string) ([]models.BookComment, error)
+	GetByUserID(userID int, limit, offset int) ([]models.BookComment, error)
+	GetLast(limit int) ([]models.BookComment, error)
 
 	SetStatus(id int, status, userRole string) error
 	CountByBook(bookID int) (int, error)
@@ -31,12 +31,12 @@ func NewCommentService(repo repository.CommentRepository) CommentService { // lo
 	return &commentService{repo: repo} // , logger: logger
 }
 
-func (s *commentService) Create(comment *models.Comment) error {
+func (s *commentService) Create(comment *models.BookComment) error {
 	comment.Status = models.CommentStatusActive // либо "pending", если будет модерация
 	return s.repo.Create(comment)
 }
 
-func (s *commentService) Update(comment *models.Comment, userID int, userRole string) error {
+func (s *commentService) Update(comment *models.BookComment, userID int, userRole string) error {
 	existing, err := s.repo.GetByID(comment.ID)
 	if err != nil {
 		return err
@@ -71,11 +71,11 @@ func (s *commentService) Delete(id, userID int, userRole string) error {
 	return s.repo.SetStatus(id, models.CommentStatusDeleted)
 }
 
-func (s *commentService) GetByID(id int) (*models.Comment, error) {
+func (s *commentService) GetByID(id int) (*models.BookComment, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *commentService) GetByBookID(bookID int, limit, offset int, statuses []string) ([]models.Comment, error) {
+func (s *commentService) GetByBookID(bookID int, limit, offset int, statuses []string) ([]models.BookComment, error) {
 	if len(statuses) == 0 {
 		statuses = []string{models.CommentStatusActive} // по умолчанию только активные
 	}
@@ -83,11 +83,11 @@ func (s *commentService) GetByBookID(bookID int, limit, offset int, statuses []s
 	return s.repo.GetByBookID(bookID, limit, offset, statuses)
 }
 
-func (s *commentService) GetByUserID(userID int, limit, offset int) ([]models.Comment, error) {
+func (s *commentService) GetByUserID(userID int, limit, offset int) ([]models.BookComment, error) {
 	return s.repo.GetByUserID(userID, limit, offset)
 }
 
-func (s *commentService) GetLast(limit int) ([]models.Comment, error) {
+func (s *commentService) GetLast(limit int) ([]models.BookComment, error) {
 	return s.repo.GetLast(limit)
 }
 

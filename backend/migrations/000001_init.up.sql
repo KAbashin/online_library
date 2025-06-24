@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     parent_id INT REFERENCES categories(id) ON DELETE CASCADE,
-    slug VARCHAR(255) UNIQUE
+    slug VARCHAR(255) UNIQUE,
     description TEXT
     );
 
@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS books (
         CHECK (type IN ('book', 'journal', 'article', 'other')),
     rating INT DEFAULT 0,
     cover_url VARCHAR(512),
-    status VARCHAR(20) NOT NULL DEFAULT 'quarantine'
-    created_by INT REFERENCES users(id);
+    status VARCHAR(20) NOT NULL DEFAULT 'quarantine',
+    created_by INT REFERENCES users(id),
     created_at TIMESTAMP DEFAULT NOW()
     );
 
@@ -58,15 +58,15 @@ CREATE TABLE IF NOT EXISTS book_images (
 -- Хештеги
 CREATE TABLE IF NOT EXISTS tags (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
-    color VARCHAR(7); -- hex-код, напр. "#FF8800"
+    name VARCHAR(100) NOT NULL UNIQUE,
+    color VARCHAR(7) -- hex-код, напр. "#FF8800"
     );
 
 -- Связь книг и тегов
 CREATE TABLE IF NOT EXISTS book_tags (
     book_id INT REFERENCES books(id) ON DELETE CASCADE,
     tag_id INT REFERENCES tags(id) ON DELETE CASCADE,
-    weight INT DEFAULT 1; -- 1 = основной, 0 = второстепенный
+    weight INT DEFAULT 1, -- 1 = основной, 0 = второстепенный
     PRIMARY KEY (book_id, tag_id)
     );
 
@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS book_files (
     file_size BIGINT,
     hash VARCHAR(128) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    description TEXT,
     UNIQUE(book_id, format)
     );
 

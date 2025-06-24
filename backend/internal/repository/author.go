@@ -6,14 +6,33 @@ import (
 	"online_library/backend/internal/pkg/translit"
 )
 
+// AuthorRepository определяет интерфейс для операций с авторами книг.
 type AuthorRepository interface {
+	// CreateAuthor добавляет нового автора в базу данных.
+	// Если name_en не указан, он будет сгенерирован из name_ru с помощью транслитерации.
 	CreateAuthor(author *models.Author) error
+
+	// UpdateAuthor обновляет информацию об авторе в базе данных по его ID.
 	UpdateAuthor(author *models.Author) error
+
+	// DeleteAuthor удаляет автора по ID.
 	DeleteAuthor(id int) error
+
+	// GetAuthorByID возвращает информацию об авторе по его ID.
 	GetAuthorByID(id int) (*models.Author, error)
+
+	// SearchAuthorByName ищет авторов по имени (русскому или английскому).
+	// Использует ILIKE для частичного совпадения. Поддерживает пагинацию.
 	SearchAuthorByName(query string, limit, offset int) ([]*models.Author, error)
+
+	// GetAllAuthors возвращает список всех авторов с пагинацией.
 	GetAllAuthors(offset, limit int) ([]models.Author, error)
+
+	// CountAuthors возвращает количество авторов, имя которых соответствует строке поиска.
 	CountAuthors(query string) (int, error)
+
+	// AuthorExists проверяет, существует ли автор с заданным именем (на русском или английском).
+	// Исключает из поиска автора с указанным ID (используется при обновлении).
 	AuthorExists(nameRu, nameEn string, excludeID int) (bool, error)
 }
 

@@ -31,7 +31,7 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		return
 	}
 
-	var comment models.Comment
+	var comment models.BookComment
 	if err := c.ShouldBindJSON(&comment); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -57,7 +57,7 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
-	var input models.Comment
+	var input models.BookComment
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

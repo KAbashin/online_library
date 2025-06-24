@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"online_library/backend/internal/dto"
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/service"
 	"strconv"
@@ -31,7 +32,14 @@ func (h *CategoryHandler) GetRootCategories(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить корневые категории"})
 		return
 	}
-	c.JSON(http.StatusOK, root)
+
+	var categories []models.Category
+	for _, cat := range root {
+		categories = append(categories, *cat)
+	}
+	categoryDTOs := dto.ConvertCategories(categories)
+
+	c.JSON(http.StatusOK, categoryDTOs)
 }
 
 func (h *CategoryHandler) GetCategoryByID(c *gin.Context) {
@@ -42,10 +50,13 @@ func (h *CategoryHandler) GetCategoryByID(c *gin.Context) {
 	}
 	cat, err := h.service.GetCategoryByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Категория не найдена" + c.Param("id")})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Категория не найдена " + c.Param("id")})
 		return
 	}
-	c.JSON(http.StatusOK, cat)
+
+	categoryDTO := dto.ConvertCategory(*cat)
+
+	c.JSON(http.StatusOK, categoryDTO)
 }
 
 func (h *CategoryHandler) GetCategoryChildren(c *gin.Context) {
@@ -56,10 +67,17 @@ func (h *CategoryHandler) GetCategoryChildren(c *gin.Context) {
 	}
 	children, err := h.service.GetCategoryChildren(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения подкатегорий" + c.Param("id")})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения подкатегорий " + c.Param("id")})
 		return
 	}
-	c.JSON(http.StatusOK, children)
+
+	var categories []models.Category
+	for _, child := range children {
+		categories = append(categories, *child)
+	}
+	categoryDTOs := dto.ConvertCategories(categories)
+
+	c.JSON(http.StatusOK, categoryDTOs)
 }
 
 func (h *CategoryHandler) GetBooksInCategory(c *gin.Context) {
@@ -77,13 +95,14 @@ func (h *CategoryHandler) GetBooksInCategory(c *gin.Context) {
 }
 
 func (h *CategoryHandler) CreateCategory(c *gin.Context) {
-	var input models.Category
+	var input dto.CreateCategoryDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ввод"})
 		return
 	}
 
-	id, err := h.service.CreateCategory(&input)
+	category := input.ToModel()
+	id, err := h.service.CreateCategory(category)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать категорию"})
 		return
@@ -92,20 +111,22 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 }
 
 func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
-	var input models.Category
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ввод"})
-		return
-	}
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID"})
 		return
 	}
-	input.ID = id
 
-	if err := h.service.UpdateCategory(&input); err != nil {
+	var input dto.CreateCategoryDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ввод"})
+		return
+	}
+
+	category := input.ToModel()
+	category.ID = id
+
+	if err := h.service.UpdateCategory(category); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка обновления"})
 		return
 	}

@@ -107,13 +107,35 @@ func (h *BookHandler) GetBookByID(c *gin.Context) {
 		return
 	}
 
-	book, err := h.bookService.GetBookByID(bookID, userID, userRole)
+	book, err := h.bookService.GetBookDTO(bookID, userID, userRole)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, book)
+}
+
+func (h *BookHandler) GetBookExtras(c *gin.Context) {
+	userID, userRole, ok := middleware.ExtractUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	bookID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid book ID"})
+		return
+	}
+
+	extras, err := h.bookService.GetBookExtras(bookID, userID, userRole)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, extras)
 }
 
 func (h *BookHandler) GetBooksByStatuses(c *gin.Context) {

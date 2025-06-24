@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Comment struct {
+type BookComment struct {
 	ID        int       `json:"id"`
 	BookID    int       `json:"book_id"`
 	UserID    int       `json:"user_id"`
