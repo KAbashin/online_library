@@ -14,12 +14,12 @@ type BookService interface {
 	DeleteBook(bookID int, userID int, userRole string) error
 
 	GetBookDTO(bookID int, userID int, userRole string) (*dto.BookDTO, error)
-	GetBookExtras(bookID int, userID int, userRole string) (*dto.BookExtrasDTO, error)
+	GetBookExtrasDTO(bookID int, userID int, userRole string) (*dto.BookExtrasDTO, error)
 
 	//GetBookByID(bookID int, userID int, userRole string) (*models.BookResponse, error)
 	GetBooksByStatuses(userRole string, offset, limit int) ([]models.Book, error)
-	GetBooksByAuthor(authorID int, userRole string, offset, limit int) ([]models.Book, error)
-	GetBooksByTag(tagID int, userRole string, offset, limit int) ([]models.Book, error)
+	GetBooksByAuthor(authorID int, userRole string, offset, limit int) ([]dto.BookPreviewDTO, error)
+	GetBooksByTag(tagID int, userRole string, offset, limit int) ([]dto.BookPreviewDTO, error)
 	SetBookAuthors(bookID int, authorIDs []int, userID int, userRole string) error
 	AddBookAuthor(bookID, authorID int, userID int, userRole string) error
 	RemoveBookAuthor(bookID, authorID int, userID int, userRole string) error
@@ -27,10 +27,10 @@ type BookService interface {
 	AddBookTag(bookID, tagID int, userID int, userRole string) error
 	RemoveBookTag(bookID, tagID int, userID int, userRole string) error
 	UpdateBookStatus(bookID int, status string, userRole string) error
-	SearchBooks(query string, userRole string, limit, offset int) ([]*models.Book, error)
+	SearchBooks(query string, userRole string, limit, offset int) ([]dto.BookPreviewDTO, error)
 	GetDuplicateBooks(title string) ([]*models.Book, error)
-	GetUserBooks(userID int) ([]*models.Book, error)
-	GetUserFavoriteBooks(userID int, userRole string) ([]*models.Book, error)
+	GetUserBooks(userID int) ([]dto.BookPreviewDTO, error)
+	GetUserFavoriteBooks(userID int, userRole string) ([]dto.BookPreviewDTO, error)
 	AddBookToFavorites(userID, bookID int) error
 	RemoveBookFromFavorites(userID, bookID int) error
 }
@@ -174,7 +174,7 @@ func (s *bookService) GetBookDTO(bookID int, userID int, userRole string) (*dto.
 	}, nil
 }
 
-func (s *bookService) GetBookExtras(bookID int, userID int, userRole string) (*dto.BookExtrasDTO, error) {
+func (s *bookService) GetBookExtrasDTO(bookID int, userID int, userRole string) (*dto.BookExtrasDTO, error) {
 
 	inFav, err := s.repo.IsBookInFavorites(bookID, userID)
 	if err != nil {
@@ -212,14 +212,32 @@ func (s *bookService) GetBooksByStatuses(userRole string, offset, limit int) ([]
 	return s.repo.GetBooksByStatuses(statuses, offset, limit)
 }
 
-func (s *bookService) GetBooksByAuthor(authorID int, userRole string, offset, limit int) ([]models.Book, error) {
+func (s *bookService) GetBooksByAuthor(authorID int, userRole string, offset, limit int) ([]dto.BookPreviewDTO, error) {
 	statuses := getViewableStatuses(userRole)
-	return s.repo.GetBooksByAuthor(authorID, statuses, limit, offset)
+	books, err := s.repo.GetBooksByAuthor(authorID, statuses, limit, offset)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.ConvertBooksToPreviewDTOs(
+		books,
+		s.repo.GetAuthorsByBookID,
+		s.imageRepo.GetImagesByBookID,
+	)
 }
 
-func (s *bookService) GetBooksByTag(tagID int, userRole string, offset, limit int) ([]models.Book, error) {
+func (s *bookService) GetBooksByTag(tagID int, userRole string, offset, limit int) ([]dto.BookPreviewDTO, error) {
 	statuses := getViewableStatuses(userRole)
-	return s.repo.GetBooksByTag(tagID, statuses, limit, offset)
+	books, err := s.repo.GetBooksByTag(tagID, statuses, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	return dto.ConvertBooksToPreviewDTOs(
+		books,
+		s.repo.GetAuthorsByBookID,
+		s.imageRepo.GetImagesByBookID,
+	)
 }
 
 func (s *bookService) SetBookAuthors(bookID int, authorIDs []int, userID int, userRole string) error {
@@ -271,22 +289,49 @@ func (s *bookService) UpdateBookStatus(bookID int, status string, userRole strin
 	return s.repo.UpdateBookStatus(bookID, status)
 }
 
-func (s *bookService) SearchBooks(query string, userRole string, limit, offset int) ([]*models.Book, error) {
+func (s *bookService) SearchBooks(query string, userRole string, limit, offset int) ([]dto.BookPreviewDTO, error) {
 	statuses := getViewableStatuses(userRole)
-	return s.repo.SearchBooks(query, statuses, limit, offset)
+	books, err := s.repo.SearchBooks(query, statuses, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.ConvertBooksToPreviewDTOs(
+		books,
+		s.repo.GetAuthorsByBookID,
+		s.imageRepo.GetImagesByBookID,
+	)
 }
 
 func (s *bookService) GetDuplicateBooks(title string) ([]*models.Book, error) {
 	return s.repo.GetDuplicateBooks(title)
 }
 
-func (s *bookService) GetUserBooks(userID int) ([]*models.Book, error) {
-	return s.repo.GetUserBooks(userID)
+func (s *bookService) GetUserBooks(userID int) ([]dto.BookPreviewDTO, error) {
+	books, err := s.repo.GetUserBooks(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.ConvertBooksToPreviewDTOs(
+		books,
+		s.repo.GetAuthorsByBookID,
+		s.imageRepo.GetImagesByBookID,
+	)
 }
 
-func (s *bookService) GetUserFavoriteBooks(userID int, userRole string) ([]*models.Book, error) {
+func (s *bookService) GetUserFavoriteBooks(userID int, userRole string) ([]dto.BookPreviewDTO, error) {
 	statuses := getViewableStatuses(userRole)
-	return s.repo.GetUserFavoriteBooks(userID, statuses)
+	books, err := s.repo.GetUserFavoriteBooks(userID, statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.ConvertBooksToPreviewDTOs(
+		books,
+		s.repo.GetAuthorsByBookID,
+		s.imageRepo.GetImagesByBookID,
+	)
 }
 
 func (s *bookService) AddBookToFavorites(userID, bookID int) error {

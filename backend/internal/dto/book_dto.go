@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"fmt"
 	"online_library/backend/internal/models"
 	"sort"
 	"time"
@@ -29,6 +30,15 @@ type BookExtrasDTO struct {
 	InFavorites bool             `json:"in_favorites"`
 	Comments    []BookCommentDTO `json:"comments"`
 	// Relations   []BookRelationDTO `json:"relations"`
+}
+
+type BookPreviewDTO struct {
+	ID            int         `json:"id"`
+	Title         string      `json:"title"`
+	CoverURL      *string     `json:"cover_url,omitempty"`
+	Authors       []AuthorDTO `json:"authors"`
+	CoverImageURL *string     `json:"cover_image_url,omitempty"`
+	PublishYear   *int        `json:"publish_year,omitempty"`
 }
 
 type BookFileDTO struct {
@@ -156,4 +166,47 @@ func ConvertBookComments(comments []models.BookComment) []BookCommentDTO {
 		result = append(result, ConvertBookComment(c))
 	}
 	return result
+}
+
+func ConvertBookToPreviewDTO(book models.Book, authors []models.Author, images []models.BookImage) BookPreviewDTO {
+	var coverURL *string
+	for _, img := range images {
+		if img.OrderIndex == 1 {
+			coverURL = &img.URL
+			break
+		}
+	}
+
+	return BookPreviewDTO{
+		ID:            book.ID,
+		Title:         book.Title,
+		CoverImageURL: coverURL,
+		Authors:       ConvertAuthors(authors),
+		PublishYear:   book.PublishYear,
+	}
+}
+
+func ConvertBooksToPreviewDTOs(
+	books []*models.Book,
+	getAuthors func(bookID int) ([]models.Author, error),
+	getImages func(bookID int) ([]models.BookImage, error),
+) ([]BookPreviewDTO, error) {
+	var result []BookPreviewDTO
+
+	for _, book := range books {
+		authors, err := getAuthors(book.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get authors for book %d: %w", book.ID, err)
+		}
+
+		images, err := getImages(book.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get images for book %d: %w", book.ID, err)
+		}
+
+		dtoItem := ConvertBookToPreviewDTO(*book, authors, images)
+		result = append(result, dtoItem)
+	}
+
+	return result, nil
 }

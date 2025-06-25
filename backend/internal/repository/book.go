@@ -25,7 +25,7 @@ type BookRepository interface {
 	GetBookMeta(bookID int) (*models.Book, error) // Только базовые данные: id, created_by
 
 	// GetBooksByAuthor возвращает книги указанного автора с указанными статусами и пагинацией.
-	GetBooksByAuthor(authorID int, statuses []string, limit, offset int) ([]models.Book, error)
+	GetBooksByAuthor(authorID int, statuses []string, limit, offset int) ([]*models.Book, error)
 
 	// GetAuthorsByBookID возвращает список авторов книги по её ID.
 	GetAuthorsByBookID(bookID int) ([]models.Author, error)
@@ -40,7 +40,7 @@ type BookRepository interface {
 	RemoveBookAuthor(bookID, authorID int) error
 
 	// GetBooksByTag возвращает книги, связанные с указанным тегом, с фильтрацией по статусам.
-	GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]models.Book, error)
+	GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]*models.Book, error)
 
 	// SetBookTags заменяет все теги у книги на переданный список.
 	SetBookTags(bookID int, tagIDs []int) error
@@ -203,9 +203,9 @@ func (r *bookRepository) GetBooksByStatuses(statuses []string, offset, limit int
 	return books, nil
 }
 
-func (r *bookRepository) GetBooksByAuthor(authorID int, statuses []string, limit, offset int) ([]models.Book, error) {
+func (r *bookRepository) GetBooksByAuthor(authorID int, statuses []string, limit, offset int) ([]*models.Book, error) {
 	if len(statuses) == 0 {
-		return nil, fmt.Errorf("no statuses provided")
+		return []*models.Book{}, nil
 	}
 
 	placeholders := make([]string, len(statuses))
@@ -238,7 +238,7 @@ func (r *bookRepository) GetBooksByAuthor(authorID int, statuses []string, limit
 		}
 	}(rows)
 
-	var books []models.Book
+	var books []*models.Book
 	for rows.Next() {
 		var b models.Book
 		err := rows.Scan(
@@ -249,8 +249,9 @@ func (r *bookRepository) GetBooksByAuthor(authorID int, statuses []string, limit
 		if err != nil {
 			return nil, err
 		}
-		books = append(books, b)
+		books = append(books, &b)
 	}
+
 	return books, nil
 }
 
@@ -282,9 +283,9 @@ func (r *bookRepository) GetAuthorsByBookID(bookID int) ([]models.Author, error)
 	return authors, nil
 }
 
-func (r *bookRepository) GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]models.Book, error) {
+func (r *bookRepository) GetBooksByTag(tagID int, statuses []string, limit, offset int) ([]*models.Book, error) {
 	if len(statuses) == 0 {
-		return nil, fmt.Errorf("no statuses provided")
+		return []*models.Book{}, nil
 	}
 
 	placeholders := make([]string, len(statuses))
@@ -317,7 +318,7 @@ func (r *bookRepository) GetBooksByTag(tagID int, statuses []string, limit, offs
 		}
 	}(rows)
 
-	var books []models.Book
+	var books []*models.Book
 	for rows.Next() {
 		var b models.Book
 		err := rows.Scan(
@@ -328,7 +329,7 @@ func (r *bookRepository) GetBooksByTag(tagID int, statuses []string, limit, offs
 		if err != nil {
 			return nil, err
 		}
-		books = append(books, b)
+		books = append(books, &b)
 	}
 	return books, nil
 }

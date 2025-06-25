@@ -36,13 +36,15 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 	authorService := service.NewAuthorService(authorRepo)
 	authorHandler := handlers.NewAuthorHandler(authorService)
 
-	bookRepo := repository.NewBookRepository(db)
-	bookService := service.NewBookService(bookRepo, tagRepo)
-	bookHandler := handlers.NewBookHandler(bookService)
-
 	commentRepo := repository.NewCommentRepository(db)
 	commentService := service.NewCommentService(commentRepo)
 	commentHandler := handlers.NewCommentHandler(commentService)
+
+	bookRepo := repository.NewBookRepository(db)
+	imageRepo := repository.NewImageRepository(db)
+	fileRepo := repository.NewFileRepository(db)
+	bookService := service.NewBookService(bookRepo, tagRepo, imageRepo, fileRepo, commentRepo)
+	bookHandler := handlers.NewBookHandler(bookService)
 
 	// Категории
 	apiCategories := r.Group("/api/categories")
@@ -64,6 +66,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		//
 		apiBooks.GET("", authMiddleware.AuthRequired(), bookHandler.SearchBooks)
 		apiBooks.GET("/:book_id", authMiddleware.AuthRequired(), bookHandler.GetBookByID)
+		apiBooks.GET("/:book_id/extras", authMiddleware.AuthRequired(), bookHandler.GetBookExtras)
 		apiBooks.GET("/author/:author_id", authMiddleware.AuthRequired(), bookHandler.GetBooksByAuthor)
 		apiBooks.GET("/tag/:tag_id", authMiddleware.AuthRequired(), bookHandler.GetBooksByTag)
 		apiBooks.GET("/duplicates/:title", authMiddleware.AuthRequired(), bookHandler.GetDuplicateBooks)

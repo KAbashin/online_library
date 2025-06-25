@@ -129,7 +129,7 @@ func (h *BookHandler) GetBookExtras(c *gin.Context) {
 		return
 	}
 
-	extras, err := h.bookService.GetBookExtras(bookID, userID, userRole)
+	extras, err := h.bookService.GetBookExtrasDTO(bookID, userID, userRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
