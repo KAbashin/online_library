@@ -12,8 +12,7 @@ import (
 )
 
 type BookHandler struct {
-	bookService  service.BookService
-	imageService service
+	bookService service.BookService
 }
 
 type TagListRequest struct {

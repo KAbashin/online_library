@@ -623,7 +623,12 @@ func (r *bookRepository) GetLatestBooks(limit int) ([]*models.Book, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
 
 	var books []*models.Book
 	for rows.Next() {
