@@ -1,18 +1,17 @@
-<!-- пример:   отображение дочерней категории  -->
+<!--  отображение дочерней категории  -->
 <template>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <router-link
-        v-for="cat in categories"
-        :key="cat.id"
-        :to="`/category/${cat.name}-${cat.id}`"
-        class="block p-4 bg-white shadow rounded hover:bg-gray-50"
+        v-for="category in categories"
+        :key="category.id"
+        :to="category.to"
+        class="p-4 bg-white rounded shadow hover:bg-gray-100"
     >
-      <div class="text-lg font-semibold">{{ cat.name }}</div>
-      <p class="text-sm text-gray-600 mt-1">{{ cat.description }}</p>
+      {{ category.name }}
     </router-link>
   </div>
 </template>
 
 <script setup>
-const props = defineProps({ categories: Array })
+defineProps({ categories: Array })
 </script>

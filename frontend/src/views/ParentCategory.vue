@@ -1,43 +1,49 @@
-<!--  дочерние категории и книги из них + новинки -->
 <template>
-  <div class="flex gap-6">
-    <FilterSidebar :filters="filters" @apply="applyFilters" />
-    <div class="flex-1 space-y-6">
-      <CategoryBlock
-          v-for="child in childCategories"
-          :key="child.id"
-          :category="child"
-          :books="child.books"
-      />
-      <NewReleases :books="newBooks" title="Новинки" />
-    </div>
+  <div>
+    <h1 class="text-2xl font-bold mb-2">{{ category?.name }}</h1>
+    <p class="mb-4 text-gray-600">{{ category?.description }}</p>
+
+    <ErrorBanner
+        v-if="error"
+        :message="error"
+        @retry="loadCategory"
+    />
+
+    <BookGrid :books="books" :loading="loading" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import FilterSidebar from '@/components/FilterSidebar.vue'
-import CategoryBlock from '@/components/CategoryBlock.vue'
-import NewReleases from '@/components/NewReleases.vue'
+import {ref, onMounted} from 'vue'
+import {useRoute} from 'vue-router'
+import {fetchCategoryBooks, fetchCategoryInfo} from '@/api/category'
+import BookGrid from '@/components/BookGrid.vue'
+import ErrorBanner from '@/components/ErrorBanner.vue'
 
 const route = useRoute()
-const parentId = Number(route.params.parentId)
+const categoryId = route.params.parentId
 
-const filters = ref({})
-const childCategories = ref([])
-const newBooks = ref([])
+const category = ref(null)
+const books = ref([])
+const loading = ref(true)
+const error = ref(null)
 
-onMounted(async () => {
-  const childrenRes = await fetch(`/api/categories/${parentId}/children?withBooks=true`)
-  childCategories.value = await childrenRes.json()
-
-  const newBooksRes = await fetch(`/api/books/new?parent_category_id=${parentId}`)
-  newBooks.value = await newBooksRes.json()
-})
-
-function applyFilters(newFilters) {
-  filters.value = newFilters
-  // Перезапросить книги с фильтрами
+async function loadCategory() {
+  error.value = null
+  loading.value = true
+  try {
+    const [catRes, booksRes] = await Promise.all([
+      fetchCategoryInfo(categoryId),
+      fetchCategoryBooks(categoryId)
+    ])
+    category.value = catRes.data
+    books.value = booksRes.data
+  } catch (err) {
+    error.value = 'Не удалось загрузить категорию'
+  } finally {
+    loading.value = false
+  }
 }
+
+onMounted(loadCategory)
 </script>

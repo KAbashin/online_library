@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"online_library/backend/internal/dto"
 	"online_library/backend/internal/middleware"
 	"online_library/backend/internal/models"
 	"online_library/backend/internal/pkg/roles"
@@ -11,7 +12,8 @@ import (
 )
 
 type BookHandler struct {
-	bookService service.BookService
+	bookService  service.BookService
+	imageService service
 }
 
 type TagListRequest struct {
@@ -466,4 +468,24 @@ func (h *BookHandler) GetDuplicateBooks(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, books)
+}
+
+func (h *BookHandler) GetNewReleases(c *gin.Context) {
+	books, err := h.bookService.GetLatestBooks(10)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить новинки книг"})
+		return
+	}
+
+	dtos, err := dto.ConvertBooksToPreviewDTOs(
+		books,
+		h.bookService.GetAuthorsByBookID,
+		h.bookService.GetImagesByBookID,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обработке данных книг"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dtos)
 }

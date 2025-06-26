@@ -1,4 +1,4 @@
-<!-- пример:   -->
+<!--  шапка-->
 <template>
   <header class="bg-gray-800 text-white p-4 flex justify-between">
     <div class="font-bold text-xl">

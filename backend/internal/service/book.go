@@ -33,6 +33,9 @@ type BookService interface {
 	GetUserFavoriteBooks(userID int, userRole string) ([]dto.BookPreviewDTO, error)
 	AddBookToFavorites(userID, bookID int) error
 	RemoveBookFromFavorites(userID, bookID int) error
+	GetLatestBooks(limit int) ([]*models.Book, error)
+	GetAuthorsByBookID(bookID int) ([]models.Author, error)
+	GetImagesByBookID(bookID int) ([]models.BookImage, error)
 }
 
 type bookService struct {
@@ -340,4 +343,16 @@ func (s *bookService) AddBookToFavorites(userID, bookID int) error {
 
 func (s *bookService) RemoveBookFromFavorites(userID, bookID int) error {
 	return s.repo.RemoveBookFromFavorites(userID, bookID)
+}
+
+func (s *bookService) GetLatestBooks(limit int) ([]*models.Book, error) {
+	return s.repo.GetLatestBooks(limit)
+}
+
+func (s *bookService) GetAuthorsByBookID(bookID int) ([]models.Author, error) {
+	return s.repo.GetAuthorsByBookID(bookID)
+}
+
+func (s *bookService) GetImagesByBookID(bookID int) ([]models.BookImage, error) {
+	return s.imageRepo.GetImagesByBookID(bookID)
 }

@@ -71,6 +71,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		apiBooks.GET("/tag/:tag_id", authMiddleware.AuthRequired(), bookHandler.GetBooksByTag)
 		apiBooks.GET("/duplicates/:title", authMiddleware.AuthRequired(), bookHandler.GetDuplicateBooks)
 		apiBooks.GET("/mine", authMiddleware.AuthRequired(), bookHandler.GetUserBooks)
+		apiBooks.GET("/new-releases", authMiddleware.AuthRequired(), bookHandler.GetNewReleases)
 
 		// Избранное
 		apiBooks.GET("/favorites", authMiddleware.AuthRequired(), bookHandler.GetUserFavoriteBooks)

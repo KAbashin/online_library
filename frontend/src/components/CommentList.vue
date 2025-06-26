@@ -1,4 +1,4 @@
-<!-- пример:   -->
+<!-- пример:  комментарии -->
 <template>
   <div class="mt-6">
     <h3 class="text-lg font-semibold">Комментарии</h3>

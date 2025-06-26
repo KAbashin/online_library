@@ -1,4 +1,4 @@
-<!-- пример:   -->
+<!--  подвал-->
 <template>
   <footer class="bg-gray-800 text-white text-center p-4">
     © 2025 Онлайн библиотека. Все права нарушены.

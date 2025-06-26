@@ -1,92 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 
+import CategoryList from '@/pages/category/CategoryList.vue'
+import ParentCategory from '@/pages/category/ParentCategory.vue'
+import ChildCategory from '@/pages/category/ChildCategory.vue'
+import AuthorPage from '@/pages/author/AuthorPage.vue'
+import TagPage from '@/pages/tag/TagPage.vue'
+import BookPage from '@/pages/book/BookPage.vue'
+import ProfilePage from '@/pages/profile/ProfilePage.vue'
+
 const routes = [
     {
         path: '/',
         component: MainLayout,
         children: [
-            {
-                path: '',
-                name: 'Home',
-                component: () => import('@/views/Home.vue')
-            },
-            // Админ зона
-            {
-                path: 'adminbackdoor',
-                name: 'Admin',
-                component: () => import('@/views/Admin.vue'),
-                meta: { minRole: 'admin' }
-            },
-            // Страница карантин для новых пользователей
-            {
-                path: 'new-user',
-                name: 'NewUser',
-                component: () => import('@/views/NewUser.vue'),
-                meta: { minRole: 'new-user' }
-            },
-            // 1. Страница родительских категорий
-            {   path: 'category',
-                name: 'CategoryList',
-                component: () => import('@/views/CategoryList.vue'),
-                meta: { minRole: 'user' }
-            },
+            { path: '', name: 'Home', component: () => import('@/views/Home.vue') },
 
-            // 2. Страница родительской категории
-            {
-                path: 'category/:parentName-:parentId(\\d+)',
-                name: 'ParentCategory',
-                component: () => import('@/views/ParentCategory.vue'),
-                props: true,
-                meta: { minRole: 'user' }
-            },
+            { path: 'adminbackdoor', name: 'Admin', component: () => import('@/views/Admin.vue'), meta: { minRole: 'admin' } },
+            { path: 'new-user', name: 'NewUser', component: () => import('@/views/NewUser.vue'), meta: { minRole: 'new-user' } },
 
-            // 3. Страница дочерней категории
-            {
-                path: 'category/:parentName-:parentId(\\d+)/:childName-:childId(\\d+)',
-                name: 'ChildCategory',
-                component: () => import('@/views/ChildCategory.vue'),
-                props: true,
-                meta: { minRole: 'user' }
-            },
-
-            // 4. Страница книги
-            {
-                path: 'book/:title-:id(\\d+)',
-                name: 'Book',
-                component: () => import('@/views/Book.vue'),
-                props: true,
-                meta: { minRole: 'user' }
-            },
-
-            // 5. Страница автора
-            {
-                path: 'author/:name-:id(\\d+)',
-                name: 'Author',
-                component: () => import('@/views/Author.vue'),
-                props: true,
-                meta: { minRole: 'user' }
-            },
-
-            // 6. Страница тега
-            {
-                path: ':tagName-:id(\\d+)',
-                name: 'Tag',
-                component: () => import('@/views/Tag.vue'),
-                props: true,
-                meta: { minRole: 'user' }
-            },
-
-            // 7. Профиль пользователя
-            {
-                path: 'profile-:id(\\d+)',
-                name: 'Profile',
-                component: () => import('@/views/Profile.vue'),
-                props: true,
-                meta: { minRole: 'user' }
-            }
+            // 👇 Категории, авторы, книги, теги и т.п. — тоже вложены
+            { path: '', name: 'CategoryList', component: CategoryList, meta: { minRole: 'user' }},
+            { path: 'category/:parentName-:parentId(\\d+)', name: 'ParentCategory', component: ParentCategory, props: true, meta: { minRole: 'user' } },
+            { path: 'category/:parentName-:parentId(\\d+)/:childName-:childId(\\d+)', name: 'ChildCategory', component: ChildCategory, props: true, meta: { minRole: 'user' } },
+            { path: 'author/:name-:id(\\d+)', component: AuthorPage, name: 'Author', props: true, meta: { minRole: 'user' } },
+            { path: 'tag/:name-:id(\\d+)', component: TagPage, name: 'Tag', props: true, meta: { minRole: 'user' } },
+            { path: 'book/:title-:id(\\d+)', component: BookPage, name: 'Book', props: true, meta: { minRole: 'user' } },
+            { path: 'profile/:id(\\d+)', component: ProfilePage, name: 'Profile', props: true, meta: { minRole: 'user' } }
         ]
     },
+
+
     {
         path: '/login',
         name: 'Login',

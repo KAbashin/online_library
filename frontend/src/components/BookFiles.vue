@@ -1,4 +1,4 @@
-<!-- пример:   -->
+<!-- пример:  файлы -->
 <template>
   <div v-if="files.length" class="mt-4">
     <h3 class="text-lg font-semibold">Файлы</h3>

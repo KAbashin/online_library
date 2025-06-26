@@ -77,6 +77,9 @@ type BookRepository interface {
 
 	// UpdateBookStatus обновляет статус книги.
 	UpdateBookStatus(bookID int, status string) error
+
+	// GetLatestBooks возвращает последние созданные книги
+	GetLatestBooks(limit int) ([]*models.Book, error)
 }
 
 type bookRepository struct {
@@ -608,4 +611,27 @@ func (r *bookRepository) GetBookMeta(bookID int) (*models.Book, error) {
 		return nil, err
 	}
 	return &book, nil
+}
+
+func (r *bookRepository) GetLatestBooks(limit int) ([]*models.Book, error) {
+	rows, err := r.db.Query(`
+		SELECT id, title, description, publish_year
+		FROM books
+		ORDER BY created_at DESC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var books []*models.Book
+	for rows.Next() {
+		var book models.Book
+		if err := rows.Scan(&book.ID, &book.Title, &book.Description, &book.PublishYear); err != nil {
+			return nil, err
+		}
+		books = append(books, &book)
+	}
+	return books, nil
 }

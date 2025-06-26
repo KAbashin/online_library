@@ -1,36 +1,51 @@
-<!-- пример:  (страница книги) -->
 <template>
-  <div class="container mx-auto p-4">
-    <div class="flex flex-col md:flex-row">
-      <img :src="book.cover_url" class="w-48 h-72 object-cover mb-4 md:mr-6">
-      <div>
-        <h1 class="text-2xl font-bold">{{ book.title }}</h1>
-        <p v-if="book.description">{{ book.description }}</p>
-        <p><strong>Автор:</strong> <router-link :to="`/author/${author.name}-${author.id}`">{{ author.name }}</router-link></p>
-        <p><strong>Год:</strong> {{ book.publish_year }}</p>
-        <TagList :tags="book.tags" />
-        <BookFiles :files="book.files" />
-      </div>
-    </div>
-    <CommentList :comments="book.comments" />
+  <div class="p-4 space-y-6">
+    <template v-if="loading">
+      <div class="animate-pulse h-64 bg-gray-200 rounded"></div>
+    </template>
+
+    <template v-else-if="error">
+      <ErrorBanner :message="error" @retry="fetchBook" />
+    </template>
+
+    <template v-else>
+      <BookDetails :book="book" />
+      <BookExtras v-if="extras" :extras="extras" />
+    </template>
   </div>
 </template>
+
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import BookFiles from '@/components/BookFiles.vue'
-import CommentList from '@/components/CommentList.vue'
-import TagList from '@/components/TagList.vue'
+import {onMounted, ref} from 'vue'
+import {useRoute} from 'vue-router'
+import {getBook, getBookExtras} from '@/api/book'
+import BookDetails from '@/components/BookDetails.vue'
+import BookExtras from '@/components/BookExtras.vue'
+import ErrorBanner from '@/components/ErrorBanner.vue'
 
 const route = useRoute()
-const book = ref({})
-const author = ref({})
+const id = route.params.id
 
-onMounted(async () => {
-  const id = route.params.id.split('-').at(-1)
-  const res = await fetch(`/api/books/${id}`)
-  const data = await res.json()
-  book.value = data
-  author.value = data.authors[0] || {}
-})
+const book = ref(null)
+const extras = ref(null)
+const loading = ref(true)
+const error = ref(null)
+
+async function fetchBook() {
+  loading.value = true
+  error.value = null
+  try {
+    book.value = await getBook(id)
+    // Загружаем extras в фоне
+    getBookExtras(id).then(data => {
+      extras.value = data
+    })
+  } catch (err) {
+    error.value = 'Не удалось загрузить книгу'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchBook)
 </script>

@@ -1,4 +1,4 @@
-<!-- пример:   -->
+<!-- пример:  карточка товара -->
 <template>
   <div class="border p-4 rounded shadow hover:shadow-lg transition">
     <h2 class="font-bold text-lg">{{ book.title }}</h2>
