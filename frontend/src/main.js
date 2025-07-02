@@ -7,6 +7,10 @@ import VueLazyLoad from 'vue3-lazy'
 
 const app = createApp(App)
 
+app.config.errorHandler = (err, vm, info) => {
+    console.error('Vue Global Error:', err, info)
+}
+
 app.use(router)
 app.use(VueLazyLoad)
 app.mount('#app')

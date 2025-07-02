@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 
-import CategoryList from '@/pages/category/CategoryList.vue'
-import ParentCategory from '@/pages/category/ParentCategory.vue'
-import ChildCategory from '@/pages/category/ChildCategory.vue'
-import AuthorPage from '@/pages/author/AuthorPage.vue'
-import TagPage from '@/pages/tag/TagPage.vue'
-import BookPage from '@/pages/book/BookPage.vue'
-import ProfilePage from '@/pages/profile/ProfilePage.vue'
+import CategoryList from '@/views/category/CategoryList.vue'
+import ParentCategory from '@/components/ParentCategories.vue'
+import ChildCategory from '@/views/category/ChildCategory.vue'
+import AuthorPage from '@/views/author/AuthorPage.vue'
+import TagPage from '@/views/tag/TagPage.vue'
+import BookPage from '@/views/book/BookPage.vue'
+import ProfilePage from '@/views/profile/ProfilePage.vue'
 
 const routes = [
     {
@@ -16,8 +16,8 @@ const routes = [
         children: [
             { path: '', name: 'Home', component: () => import('@/views/Home.vue') },
 
-            { path: 'adminbackdoor', name: 'Admin', component: () => import('@/views/Admin.vue'), meta: { minRole: 'admin' } },
-            { path: 'new-user', name: 'NewUser', component: () => import('@/views/NewUser.vue'), meta: { minRole: 'new-user' } },
+            { path: 'adminbackdoor', name: 'Admin', component: () => import('@/views/admin/Admin.vue'), meta: { minRole: 'admin' } },
+            { path: 'new-user', name: 'NewUser', component: () => import('@/views/auth/NewUser.vue'), meta: { minRole: 'new-user' } },
 
             // 👇 Категории, авторы, книги, теги и т.п. — тоже вложены
             { path: '', name: 'CategoryList', component: CategoryList, meta: { minRole: 'user' }},
@@ -34,17 +34,17 @@ const routes = [
     {
         path: '/login',
         name: 'Login',
-        component: () => import('@/views/Login.vue')
+        component: () => import('@/views/auth/Login.vue')
     },
     {
         path: '/register',
         name: 'Register',
-        component: () => import('@/views/Register.vue')
+        component: () => import('@/views/auth/Register.vue')
     },
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
-        component: () => import('@/views/NotFound.vue')
+        component: () => import('@/views/error/NotFound.vue')
     }
 ]
 

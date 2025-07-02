@@ -11,20 +11,17 @@
       <!-- Родительские категории -->
       <section>
         <h2 class="text-2xl font-semibold mb-4">Категории</h2>
-        <CategoryBlock :categories="categories" />
+        <ParentCategories :categories="categories" />
       </section>
 
-      <!-- Все книги -->
-      <section>
-        <h2 class="text-2xl font-semibold mb-4">Популярные книги</h2>
-        <BookGrid :books="books" :loading="loading" />
-        <div class="flex justify-center mt-4">
-          <button
-              @click="loadMore"
-              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Показать ещё
-          </button>
+      <!-- Тестовый запрос -->
+      <section class="mt-8">
+        <h2 class="text-xl font-semibold mb-2">Тестовый запрос к бекенду</h2>
+        <div v-if="testResponse" class="p-4 bg-green-100 rounded">
+          Ответ: {{ testResponse }}
+        </div>
+        <div v-else class="p-4 bg-yellow-100 rounded">
+          Нет данных
         </div>
       </section>
     </main>
@@ -34,46 +31,48 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import NewReleases from '@/components/NewReleases.vue'
-import BookGrid from '@/components/BookGrid.vue'
-import CategoryBlock from '@/components/CategoryBlock.vue'
-import axios from 'axios'
-import { ref, onMounted } from 'vue'
+import ParentCategories from '@/components/ParentCategories.vue'
+import { getNewReleases } from '/src/api/book'
+import { fetchRootCategories } from '/src/api/category'
+import axios from '/src/api/axios'
 
 const newBooks = ref([])
-const books = ref([])
 const categories = ref([])
-const loading = ref(true)
-const page = ref(1)
-const pageSize = 12
+const testResponse = ref(null)
 
-async function fetchBooks() {
-  loading.value = true
-  const { data } = await axios.get(`/api/books?limit=${pageSize}&page=${page.value}`)
-  books.value.push(...data)
-  loading.value = false
-}
 
 async function fetchNewBooks() {
-  const { data } = await axios.get(`/api/books/new`)
-  newBooks.value = data
+  try {
+    newBooks.value = await getNewReleases()
+  } catch (err) {
+    console.error('Ошибка загрузки новинок:', err)
+  }
 }
 
 async function fetchCategories() {
-  const { data } = await axios.get(`/api/categories?level=1`)
-  categories.value = data
+  try {
+    categories.value = await fetchRootCategories()
+  } catch (err) {
+    console.error('Ошибка загрузки категорий:', err)
+  }
 }
 
-function loadMore() {
-  page.value++
-  fetchBooks()
+async function fetchTest() {
+  try {
+    const { data } = await axios.get('/test')
+    testResponse.value = JSON.stringify(data)
+  } catch (err) {
+    testResponse.value = 'Ошибка: ' + err.message
+  }
 }
 
 onMounted(() => {
   fetchNewBooks()
   fetchCategories()
-  fetchBooks()
+  fetchTest()
 })
 </script>

@@ -8,6 +8,7 @@ const instance = axios.create({
 })
 
 instance.interceptors.request.use(config => {
+    console.log('[Axios Request]', config.method.toUpperCase(), config.url, config)
     const token = localStorage.getItem('token')
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
@@ -16,12 +17,20 @@ instance.interceptors.request.use(config => {
 })
 
 instance.interceptors.response.use(
-    res => res,
+    res => {
+        console.log('[Axios Response]', res.status, res.config.url, res.data)
+        return res
+    },
     err => {
-        if (err.response?.status === 401) {
-            localStorage.removeItem('token')
-            localStorage.removeItem('role')
-            window.location.href = '/login'
+        if (err.response) {
+            console.error('[Axios Error Response]', err.response.status, err.response.config.url, err.response.data)
+            if (err.response.status === 401) {
+                localStorage.removeItem('token')
+                localStorage.removeItem('role')
+                window.location.href = '/login'
+            }
+        } else {
+            console.error('[Axios Error]', err.message)
         }
         return Promise.reject(err)
     }

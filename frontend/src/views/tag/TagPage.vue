@@ -1,16 +1,21 @@
-<!-- пример:  Страница тэгов -->
 <template>
-  <div>
-    <h1 class="text-2xl font-bold mb-2">{{ tag?.name }}</h1>
-    <p class="text-gray-600 mb-4">{{ tag?.description }}</p>
+  <div class="p-4 space-y-6">
+    <div v-if="loading" class="text-gray-500">Загрузка...</div>
 
-    <ErrorBanner
-        v-if="error"
-        :message="error"
-        @retry="loadTag"
-    />
+    <div v-else-if="error">
+      <ErrorBanner :message="error" @retry="loadTag" />
+    </div>
 
-    <BookGrid :books="books" :loading="loading" />
+    <div v-else>
+      <h1 class="text-2xl font-bold mb-2" :style="{ color: tag?.color || '#000' }">
+        Тег: {{ tag?.name }}
+      </h1>
+      <p class="text-gray-600 mb-4" v-if="tag?.description">{{ tag.description }}</p>
+
+      <div v-if="books.length === 0" class="text-gray-500">Нет книг с этим тегом.</div>
+
+      <BookGrid :books="books" />
+    </div>
   </div>
 </template>
 
@@ -35,12 +40,12 @@ async function loadTag() {
   try {
     const [tagRes, booksRes] = await Promise.all([
       fetchTag(tagId),
-      fetchTagBooks(tagId)
+      fetchTagBooks(tagId),
     ])
     tag.value = tagRes.data
     books.value = booksRes.data
   } catch (err) {
-    error.value = 'Не удалось загрузить тег'
+    error.value = err.response?.data?.message || err.message || 'Ошибка загрузки'
   } finally {
     loading.value = false
   }

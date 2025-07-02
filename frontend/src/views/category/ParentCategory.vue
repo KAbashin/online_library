@@ -1,12 +1,12 @@
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-2">{{ author?.name }}</h1>
-    <p class="text-gray-600 mb-4">{{ author?.bio }}</p>
+    <h1 class="text-2xl font-bold mb-2">{{ category?.name }}</h1>
+    <p class="mb-4 text-gray-600">{{ category?.description }}</p>
 
     <ErrorBanner
         v-if="error"
         :message="error"
-        @retry="loadAuthor"
+        @retry="loadCategory"
     />
 
     <BookGrid :books="books" :loading="loading" />
@@ -16,34 +16,34 @@
 <script setup>
 import {ref, onMounted} from 'vue'
 import {useRoute} from 'vue-router'
-import {fetchAuthor, fetchAuthorBooks} from '@/api/author'
+import {fetchCategoryBooks, fetchCategoryInfo} from '@/api/category.js'
 import BookGrid from '@/components/BookGrid.vue'
 import ErrorBanner from '@/components/ErrorBanner.vue'
 
 const route = useRoute()
-const authorId = route.params.id
+const categoryId = route.params.parentId
 
-const author = ref(null)
+const category = ref(null)
 const books = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-async function loadAuthor() {
+async function loadCategory() {
   error.value = null
   loading.value = true
   try {
-    const [authorRes, booksRes] = await Promise.all([
-      fetchAuthor(authorId),
-      fetchAuthorBooks(authorId)
+    const [catRes, booksRes] = await Promise.all([
+      fetchCategoryInfo(categoryId),
+      fetchCategoryBooks(categoryId)
     ])
-    author.value = authorRes.data
+    category.value = catRes.data
     books.value = booksRes.data
   } catch (err) {
-    error.value = 'Не удалось загрузить автора'
+    error.value = 'Не удалось загрузить категорию'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(loadAuthor)
+onMounted(loadCategory)
 </script>

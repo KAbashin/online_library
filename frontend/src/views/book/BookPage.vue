@@ -16,9 +16,9 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue'
-import {useRoute} from 'vue-router'
-import {getBook, getBookExtras} from '@/api/book'
+import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { getBook, getBookExtras } from '/src/api/book'
 import BookDetails from '@/components/BookDetails.vue'
 import BookExtras from '@/components/BookExtras.vue'
 import ErrorBanner from '@/components/ErrorBanner.vue'
@@ -36,12 +36,18 @@ async function fetchBook() {
   error.value = null
   try {
     book.value = await getBook(id)
-    // Загружаем extras в фоне
-    getBookExtras(id).then(data => {
-      extras.value = data
-    })
+
+    // Загружаем дополнительные данные (extras) параллельно
+    getBookExtras(id)
+        .then(data => {
+          extras.value = data
+        })
+        .catch(err => {
+          console.warn('Ошибка загрузки extras:', err)
+        })
   } catch (err) {
     error.value = 'Не удалось загрузить книгу'
+    console.error(err)
   } finally {
     loading.value = false
   }
