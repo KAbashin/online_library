@@ -2,25 +2,27 @@ import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 
 import CategoryList from '@/views/category/CategoryList.vue'
-import ParentCategory from '@/components/ParentCategories.vue'
+import ParentCategory from '@/views/category/ParentCategory.vue'
 import ChildCategory from '@/views/category/ChildCategory.vue'
 import AuthorPage from '@/views/author/AuthorPage.vue'
 import TagPage from '@/views/tag/TagPage.vue'
 import BookPage from '@/views/book/BookPage.vue'
 import ProfilePage from '@/views/profile/ProfilePage.vue'
+import Home from '@/views/Home.vue'
+import AdminBackdoor from '@/views/admin/Admin.vue'
+import NewUser from "@/views/auth/NewUser.vue";
 
 const routes = [
     {
         path: '/',
         component: MainLayout,
         children: [
-            { path: '', name: 'Home', component: () => import('@/views/Home.vue') },
+            { path: '', name: 'Home', component: Home, meta: { minRole: 'user' } },
 
-            { path: 'adminbackdoor', name: 'Admin', component: () => import('@/views/admin/Admin.vue'), meta: { minRole: 'admin' } },
-            { path: 'new-user', name: 'NewUser', component: () => import('@/views/auth/NewUser.vue'), meta: { minRole: 'new-user' } },
+            { path: 'adminbackdoor', name: 'Admin', component: AdminBackdoor, meta: { minRole: 'admin' } },
+            { path: 'new-user', name: 'NewUser', component: NewUser, meta: { minRole: 'new-user' } },
 
-            // 👇 Категории, авторы, книги, теги и т.п. — тоже вложены
-            { path: '', name: 'CategoryList', component: CategoryList, meta: { minRole: 'user' }},
+            { path: 'categories', name: 'CategoryList', component: CategoryList, meta: { minRole: 'user' }},
             { path: 'category/:parentName-:parentId(\\d+)', name: 'ParentCategory', component: ParentCategory, props: true, meta: { minRole: 'user' } },
             { path: 'category/:parentName-:parentId(\\d+)/:childName-:childId(\\d+)', name: 'ChildCategory', component: ChildCategory, props: true, meta: { minRole: 'user' } },
             { path: 'author/:name-:id(\\d+)', component: AuthorPage, name: 'Author', props: true, meta: { minRole: 'user' } },
@@ -60,7 +62,9 @@ const roleHierarchy = {
     'superadmin': 3,
 }
 
+
 router.beforeEach((to, from, next) => {
+    console.log(`Navigating to: ${to.path}`);
     const token = localStorage.getItem('token')
     const role = localStorage.getItem('role')
 

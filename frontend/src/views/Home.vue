@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col min-h-screen bg-gray-100">
     <Header />
-
+    <br>
     <main class="flex-grow container mx-auto px-4 py-6 space-y-10">
       <!-- Новинки -->
       <section>
@@ -14,18 +14,9 @@
         <ParentCategories :categories="categories" />
       </section>
 
-      <!-- Тестовый запрос -->
-      <section class="mt-8">
-        <h2 class="text-xl font-semibold mb-2">Тестовый запрос к бекенду</h2>
-        <div v-if="testResponse" class="p-4 bg-green-100 rounded">
-          Ответ: {{ testResponse }}
-        </div>
-        <div v-else class="p-4 bg-yellow-100 rounded">
-          Нет данных
-        </div>
-      </section>
     </main>
 
+    <br>
     <Footer />
   </div>
 </template>
@@ -36,12 +27,17 @@ import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import NewReleases from '@/components/NewReleases.vue'
 import ParentCategories from '@/components/ParentCategories.vue'
+
 import { getNewReleases } from '/src/api/book'
 import { fetchRootCategories } from '/src/api/category'
 import axios from '/src/api/axios'
 
 const newBooks = ref([])
+const books = ref([])
 const categories = ref([])
+const loading = ref(true)
+const page = ref(1)
+const pageSize = 12
 const testResponse = ref(null)
 
 
@@ -61,18 +57,10 @@ async function fetchCategories() {
   }
 }
 
-async function fetchTest() {
-  try {
-    const { data } = await axios.get('/test')
-    testResponse.value = JSON.stringify(data)
-  } catch (err) {
-    testResponse.value = 'Ошибка: ' + err.message
-  }
-}
 
 onMounted(() => {
   fetchNewBooks()
   fetchCategories()
-  fetchTest()
+
 })
 </script>

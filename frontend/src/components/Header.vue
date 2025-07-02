@@ -1,15 +1,38 @@
-<!--  шапка-->
 <template>
-  <header class="bg-gray-800 text-white p-4 flex justify-between">
-    <div class="font-bold text-xl">
-      Онлайн библиотека
+  <header class="bg-gray-800 text-white p-4 grid grid-cols-[1fr_auto] items-start">
+    <!-- Левая колонка: Онлайн библиотека -->
+    <div>
+      <router-link to="/" class="text-2xl font-bold leading-tight hover:underline">
+        Онлайн<br />библиотека
+      </router-link>
     </div>
-    <nav class="space-x-4">
-      <router-link to="/" class="hover:underline">Главная</router-link>
-      <router-link v-if="role === 'user' || isAdmin" to="/profile" class="hover:underline">Профиль</router-link>
-      <router-link v-if="isAdmin" to="/adminbackdoor" class="hover:underline">Админ</router-link>
-      <button @click="logout" class="hover:underline">Выйти</button>
-    </nav>
+
+    <!-- Правая колонка: навигация по ролям -->
+    <div class="grid grid-rows-3 gap-1 text-right">
+      <router-link
+          v-if="isAdmin"
+          to="/adminbackdoor"
+          class="hover:underline"
+      >
+        Админ
+      </router-link>
+
+      <router-link
+          v-if="role === 'user' || isAdmin"
+          to="/profile"
+          class="hover:underline"
+      >
+        Профиль
+      </router-link>
+
+      <button
+          v-if="role"
+          @click="logout"
+          class="text-sm text-red-300 hover:underline"
+      >
+        Выйти
+      </button>
+    </div>
   </header>
 </template>
 

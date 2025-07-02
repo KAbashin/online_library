@@ -31,39 +31,31 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { jwtDecode } from 'jwt-decode'
+import { jwtDecode } from 'jwt-decode';
+import api from '@/api/axios'
 
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const router = useRouter()
-const API_URL = import.meta.env.VITE_API_URL
-
 
 const login = async () => {
   error.value = ''
-
   try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.value, password: password.value }),
+    const { data } = await api.post('/auth/login', {
+      email: email.value,
+      password: password.value
     })
 
-    if (!response.ok) throw new Error('Неверные данные')
+    console.log(typeof jwtDecode, jwtDecode)
 
-    const data = await response.json()
     const token = data.token
-
     const decoded = jwtDecode(token)
-    const role = decoded.role
-
     localStorage.setItem('token', token)
-    localStorage.setItem('role', role)
-
+    localStorage.setItem('role', decoded.role)
     await router.push('/')
   } catch (err) {
-    error.value = err.message || 'Ошибка входа'
+    error.value = err.response?.data?.message || err.message || 'Ошибка входа'
   }
 }
 
